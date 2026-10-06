@@ -2,7 +2,7 @@
 
 > Let your local Claude Code interact with any WebMCP compatible frontend app.
 
-> or just Build rich agent experiences using WebMCP and local Claude Code.
+> or just Build rich agentic experiences using WebMCP and local Claude Code.
 
 **Your web page is the UI. Claude Code is the brain. WebMCP is the wire between them.**
 
@@ -15,9 +15,13 @@ agent SDK.
 claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► document.modelContext tools
 ```
 
-| Editor: highlight text, comment, and Claude edits and replies in the thread | Maps: ask a question, and Claude plots the answer on India |
-| --- | --- |
-| <img src="docs/editor-example.png" alt="Markdown editor with Claude's replies in comment threads" width="480"> | <img src="docs/maps-example.png" alt="Map of India with exam paper leaks plotted as dots" width="480"> |
+![Markdown editor with Claude's replies in comment threads](docs/editor-example.png)
+
+**Editor.** Highlight text, leave a comment, and Claude edits the doc and replies in the thread. Every change is versioned.
+
+![Map of India with exam paper leaks plotted as dots](docs/maps-example.png)
+
+**Maps.** Ask `/map exam paper leaks in India`, and Claude researches, builds the layer and plots it across states and districts.
 
 ## Why it's worth a look
 
