@@ -19,9 +19,9 @@ claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► 
 
 **Editor.** Highlight text, leave a comment, and Claude edits the doc and replies in the thread. Every change is versioned.
 
-![Map of India with exam paper leaks plotted as dots](docs/maps-example.png)
+![Map of India with premium institutes plotted as dots](docs/maps-example.png)
 
-**Maps.** Ask `/map exam paper leaks in India`, and Claude researches, builds the layer and plots it across states and districts.
+**Maps.** Ask `/map plot IITs, NITs and other premium institutes in India`, and Claude researches, builds the layer and plots it across states and districts.
 
 ## Why it's worth a look
 
