@@ -1,5 +1,7 @@
 # webmcp-apps
 
+**Project page: [smarchone.github.io/webmcp-apps](https://smarchone.github.io/webmcp-apps)**
+
 > Let your local Claude Code interact with any WebMCP compatible frontend app.
 
 > or just Build rich agentic experiences using WebMCP and local Claude Code.
