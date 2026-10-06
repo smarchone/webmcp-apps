@@ -1,0 +1,17 @@
+{
+  "name": "webmcp-maps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Map app where a Claude Code session plots its analysis on India's states, districts and sub-districts through WebMCP",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "build:boundaries": "node scripts/build-boundaries.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "mapshaper": "^0.6.113"
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel" id="panel">
+      <header class="brand">
+        <span class="logo">◉</span>
+        <strong>Maps</strong>
+        <span class="grow"></span>
+        <span class="status" id="status"></span>
+        <button class="theme-btn" id="theme"></button>
+      </header>
+
+      <div class="search">
+        <input id="search" type="search" placeholder="Find a state, district or taluk…" autocomplete="off" />
+        <ul class="results" id="results" hidden></ul>
+      </div>
+
+      <section class="headline">
+        <h1 id="map-title">India</h1>
+        <p id="map-subtitle" class="muted"></p>
+      </section>
+
+      <nav class="crumbs" id="crumbs"></nav>
+      <section class="region" id="region"></section>
+
+      <section class="layers">
+        <h2>Layers</h2>
+        <ul id="layers"></ul>
+        <div class="empty" id="layers-empty">
+          No data yet. Ask Claude to analyse something and plot it here, for example
+          <em>"plot complaints about potholes in Bengaluru by ward"</em>.
+        </div>
+      </section>
+
+      <footer class="sources" id="sources"></footer>
+    </aside>
+
+    <div class="resizer" id="resizer" title="Drag to resize · double-click to reset"></div>
+
+    <main class="stage" id="stage">
+      <div id="map"></div>
+      <div class="map-tools">
+        <button class="ghost" id="home" title="Back to India">⌂ India</button>
+        <button class="ghost" id="open-table" title="Show the layers' rows as a table">▦ Table</button>
+        <button class="ghost" id="export" title="Save the map as an image">⤓ Export</button>
+      </div>
+      <div class="legend" id="legend" hidden></div>
+      <div class="tooltip" id="tooltip" hidden></div>
+      <div class="toast" id="toast" hidden></div>
+
+      <section class="table-drawer" id="table" hidden>
+        <div class="table-grip" title="Drag to resize"></div>
+        <header class="table-head">
+          <nav class="table-tabs"></nav>
+          <span class="grow"></span>
+          <input class="table-filter" type="search" placeholder="Filter rows…" />
+          <button class="chip" data-act="scope" title="Only rows in the region you're looking at"></button>
+          <span class="table-count muted"></span>
+          <button class="chip" data-act="csv" title="Download these rows as CSV">⤓ CSV</button>
+          <button class="icon-btn" data-act="close" title="Close">✕</button>
+        </header>
+        <div class="table-body"></div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

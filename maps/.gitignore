@@ -1,0 +1,6 @@
+node_modules/
+.cache/
+
+# Workspace: your data files, map state and exports stay local
+workspace/*
+!workspace/README.md
