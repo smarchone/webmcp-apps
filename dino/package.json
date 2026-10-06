@@ -1,0 +1,13 @@
+{
+  "name": "webmcp-dino",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dino runner game that Claude Code plays through WebMCP",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

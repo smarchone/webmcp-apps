@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebMCP Dino</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>WebMCP Dino</h1>
+      <p class="muted" id="webmcp">checking for WebMCP…</p>
+    </header>
+
+    <section class="stage">
+      <div class="hud">
+        <span id="mode">idle</span>
+        <span class="right">HI <b id="best">00000</b> &nbsp; <b id="score">00000</b></span>
+      </div>
+      <canvas id="game" width="800" height="240"></canvas>
+      <div class="controls">
+        <button id="play">Play yourself</button>
+        <span class="muted">Space / ↑ jump · ↓ duck</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Stats</h2>
+        <dl>
+          <dt>Speed</dt><dd id="speed">-</dd>
+          <dt>Games played</dt><dd id="games">0</dd>
+          <dt>Agent best</dt><dd id="agent-best">-</dd>
+        </dl>
+        <p class="muted small">In agent mode the game freezes when an obstacle comes into range. The agent plans
+          <i>when</i> to jump or duck, and the game carries out the plan in real time.</p>
+      </div>
+      <div class="card">
+        <h2>Agent decisions</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
