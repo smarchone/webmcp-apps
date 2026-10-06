@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>webmcp-apps — your page is the UI, Claude Code is the brain</title>
+<title>webmcp-apps — your web app is the UI, Claude Code is the brain</title>
 <meta name="description" content="Let your local Claude Code drive any WebMCP-compatible web app. No backend, no API keys, no agent SDK.">
 <meta property="og:title" content="webmcp-apps">
-<meta property="og:description" content="Your web page is the UI. Claude Code is the brain. WebMCP is the wire between them.">
+<meta property="og:description" content="Your web app is the UI. Claude Code is the brain. WebMCP is the wire between them.">
 <meta property="og:image" content="maps-example.png">
 <style>
   :root {
@@ -42,6 +42,19 @@
   .btn { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--line); color: var(--text); font-weight: 600; font-size: 15px; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #1a1109; }
   .btn:hover { text-decoration: none; filter: brightness(1.1); }
+  .wire { display: flex; align-items: stretch; margin-top: 36px; }
+  .node { flex: 1 1 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+  .node b { font-size: 16px; }
+  .node span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  .node.brain { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,130,90,.12); }
+  .node.ui { border-color: #3a3833; }
+  .link { flex: 0 0 76px; position: relative; display: flex; align-items: center; justify-content: center; }
+  .link::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--accent); opacity: .75; }
+  .link i { position: relative; background: var(--bg); padding: 0 6px; font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; color: var(--accent); }
+  .tagline { margin: 0 0 18px; font-size: clamp(18px, 3vw, 22px); font-weight: 500; letter-spacing: -.01em; color: var(--muted); }
+  .tagline b { color: var(--accent); background: rgba(232,130,90,.12); border: 1px solid rgba(232,130,90,.35); border-radius: 999px; padding: 2px 12px; margin-right: 4px; font-weight: 600; white-space: nowrap; }
+  @keyframes flow { to { background-position: 0 0; } }
+  @media (prefers-reduced-motion: reduce) { .link::before { animation: none; } }
   pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; margin: 16px 0; line-height: 1.55; }
   code { color: var(--code); }
@@ -56,7 +69,7 @@
   figcaption { color: var(--muted); font-size: 15px; margin-top: 10px; }
   figcaption b { color: var(--text); }
   footer { padding: 32px 0 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
-  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } header { padding-top: 40px; } }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .wire { flex-direction: column; } .link { flex-basis: 44px; } .link::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: 0; border-left: 2px dashed var(--accent); } header { padding-top: 40px; } }
 </style>
 </head>
 <body>
@@ -64,21 +77,34 @@
 
 <header>
   <div class="eyebrow">webmcp-apps</div>
-  <h1>Your page is the UI.<br><em>Claude Code</em> is the brain.</h1>
-  <p class="lede">Register a few tools on a web page and your local Claude Code can read it and act on it. No backend, no API keys, no agent SDK.</p>
+  <h1>Your web page is the UI.<br><em>Claude Code</em> is the brain.</h1>
+  <h3 class="tagline"><b>WebMCP</b> is the wire between them.</h3>
+  <p class="lede">Expose a few tools from your existing web frontend (using WebMCP) and your local Claude Code can read its state and act on it. No backend, no API keys, no agent SDK.</p>
   <div class="cta">
     <a class="btn primary" href="#try">Try it in 2 minutes</a>
     <a class="btn" href="https://github.com/smarchone/webmcp-apps">View on GitHub</a>
   </div>
-<pre><code>claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► document.modelContext tools</code></pre>
+<div class="wire" role="img" aria-label="Claude Code connects over MCP to webmcp-bridge, which connects over CDP to your web app's tools in Chrome">
+    <div class="node brain"><b>Claude Code</b><span>the brain</span></div>
+    <div class="link"><i>MCP</i></div>
+    <div class="node"><b>webmcp-bridge</b><span>one Node script</span></div>
+    <div class="link"><i>CDP</i></div>
+    <div class="node ui"><b>Your web app</b><span>tools on <code>document.modelContext</code></span></div>
+  </div>
 </header>
+
+<section>
+  <h2>What is WebMCP?</h2>
+  <p><a href="https://webmachinelearning.github.io/webmcp/">WebMCP</a> is a proposed web standard that lets a page tell an AI agent what it can do. The page registers <b>tools</b> (a name, a description, a JSON schema and a JavaScript function) with <code>document.modelContext</code>, and an agent can list and call them.</p>
+  <p>It's like MCP, but the server is the page itself. The tools run in the page, next to its state and UI, so there's nothing to deploy and no auth to wire up. This repo adds the missing piece: a small bridge that connects a local Claude Code session to those tools in your Chrome tab.</p>
+</section>
 
 <section>
   <h2>Why build this way</h2>
   <p>Most "AI features" mean a chat box, a server, an API key and a prompt you maintain. Here the page just exposes what it can do, and an agent you already run does the rest.</p>
   <div class="grid">
-    <div class="card"><h3>Any page is an agent surface</h3><p>Add tools, and Claude can read state and take actions. No chat widget needed.</p></div>
-    <div class="card"><h3>You keep the full agent</h3><p>The session driving your page still has your files, your shell and every other MCP server.</p></div>
+    <div class="card"><h3>Any web app is an agent surface</h3><p>Add tools, and Claude can read state and take actions. No chat widget needed.</p></div>
+    <div class="card"><h3>You keep the full agent</h3><p>The session driving your app still has your files, your shell and every other MCP server.</p></div>
     <div class="card"><h3>Small and dependency-free</h3><p>Plain HTML and JS plus one Node bridge. Fork an app and ship a new one in minutes.</p></div>
   </div>
 </section>
