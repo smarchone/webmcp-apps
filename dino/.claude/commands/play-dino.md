@@ -1,6 +1,6 @@
 ---
 description: Play the WebMCP dino game in the browser
-argument-hint: "[number of games, default 3]"
+argument-hint: "[number of games, default 1]"
 ---
 
 Play the dino runner through its WebMCP tools, using the `webmcp` MCP server.
@@ -9,7 +9,7 @@ Setup:
 1. Open `http://127.0.0.1:3457` with `browser_open_page`.
 2. Call `page_call_tool` → `get_game_rules` once. Study the physics before playing.
 
-Play $ARGUMENTS games (3 if no number was given). For each game:
+Play $ARGUMENTS games (1 if no number was given). For each game:
 1. `page_call_tool` → `start_game`. It returns the first obstacle the game froze on.
 2. For every frozen state, call `page_call_tool` → `act` with `action`, `trigger_gap_px` and a `reason` of at
    most 6 words. `act` returns the next frozen state or `game_over`.
@@ -22,6 +22,8 @@ Play $ARGUMENTS games (3 if no number was given). For each game:
      again.
    - Use `recent_results` and the `dino` state to check your plans are working.
 3. On `game_over`, read `cause_of_death`, work out what went wrong, and adjust your approach for the next game.
+4. Score cap: once a frozen state shows `score` of 1000 or more, stop that game without calling `act` (count it
+   as survived). Each obstacle costs one turn, so a game with no deaths would otherwise never end.
 
 Keep thinking short between moves. Every `act` call is one turn, so don't narrate each move in the terminal.
 At the end, print one short summary: the score of each game, the best score, and what you changed between games.
