@@ -128,6 +128,9 @@ Supporting pieces:
     so idle cost drops to zero. Run `/webmcp-chat` again to resume.
 - **Let the page track idle time.** Having the agent count empty polls itself is unreliable.
 - Further option, not done: raise the max wait to 1800s.
+- **Pass bulk data as file paths, not tool arguments** (maps app). Claude writes a CSV into a workspace the
+  server can read, and the tool takes the path. A 10,000-row dataset then costs a few tokens instead of
+  being echoed into the context, and the server can return a short summary instead of the rows.
 
 ## 7. Claude Code behavior worth knowing
 
@@ -138,6 +141,20 @@ Supporting pieces:
 - **Approval prompts:** allow `mcp__webmcp` in `/permissions` to avoid one on every poll.
 - **Headless testing:** `claude -p ... --mcp-config .mcp.json --strict-mcp-config --allowedTools mcp__webmcp`.
   In `-p` mode, tools that aren't allowed are denied rather than prompted.
+
+## 7b. Designing page tools for agents (maps app)
+
+Lessons from watching real `claude -p` runs use the tools:
+
+- **Reject unknown arguments.** `page_call_tool` takes free-form arguments, so Claude guesses names
+  (`weight`, `weight_column`). Silently ignoring them produced a wrong map with no error. Validating against
+  `inputSchema` and listing the valid names fixed it on the next call.
+- **Return errors the agent can act on:** "title is required for a new layer", "\"Aurangabad\" is ambiguous
+  (Maharashtra / Bihar); add a state column". Claude corrected each of these by itself.
+- **Don't change state on a failed call.** A plot where every row failed used to leave an empty layer
+  behind. Now nothing is saved unless at least one row plots.
+- **Infer the obvious:** use the only numeric column as the value, and default to dots for small point sets.
+  Each guess removes a round trip.
 
 ## 8. How we tested
 

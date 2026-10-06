@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>webmcp-apps — your page is the UI, Claude Code is the brain</title>
+<meta name="description" content="Let your local Claude Code drive any WebMCP-compatible web app. No backend, no API keys, no agent SDK.">
+<meta property="og:title" content="webmcp-apps">
+<meta property="og:description" content="Your web page is the UI. Claude Code is the brain. WebMCP is the wire between them.">
+<meta property="og:image" content="maps-example.png">
+<style>
+  :root {
+    --bg: #161513;
+    --panel: #1e1d1a;
+    --line: #2f2d29;
+    --text: #ece9e2;
+    --muted: #9b968b;
+    --accent: #e8825a;
+    --code: #f0b89f;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  main { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  header { padding: 88px 0 56px; }
+  .eyebrow { color: var(--accent); font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.08; letter-spacing: -.02em; margin: 18px 0 20px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  h2 { font-size: 26px; letter-spacing: -.01em; margin: 0 0 12px; }
+  p { margin: 0 0 14px; }
+  .lede { font-size: 20px; color: var(--muted); max-width: 640px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+  .btn { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--line); color: var(--text); font-weight: 600; font-size: 15px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #1a1109; }
+  .btn:hover { text-decoration: none; filter: brightness(1.1); }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; margin: 16px 0; line-height: 1.55; }
+  code { color: var(--code); }
+  pre code { color: var(--text); }
+  .dim { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  figure { margin: 28px 0 0; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+  figcaption { color: var(--muted); font-size: 15px; margin-top: 10px; }
+  figcaption b { color: var(--text); }
+  footer { padding: 32px 0 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } header { padding-top: 56px; } }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">webmcp-apps</div>
+  <h1>Your page is the UI.<br><em>Claude Code</em> is the brain.</h1>
+  <p class="lede">Register a few tools on a web page and your local Claude Code can read it and act on it. No backend, no API keys, no agent SDK.</p>
+  <div class="cta">
+    <a class="btn primary" href="#try">Try it in 2 minutes</a>
+    <a class="btn" href="https://github.com/smarchone/webmcp-apps">View on GitHub</a>
+  </div>
+<pre><code>claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► document.modelContext tools</code></pre>
+</header>
+
+<section>
+  <h2>Why build this way</h2>
+  <p>Most "AI features" mean a chat box, a server, an API key and a prompt you maintain. Here the page just exposes what it can do, and an agent you already run does the rest.</p>
+  <div class="grid">
+    <div class="card"><h3>Any page is an agent surface</h3><p>Add tools, and Claude can read state and take actions. No chat widget needed.</p></div>
+    <div class="card"><h3>You keep the full agent</h3><p>The session driving your page still has your files, your shell and every other MCP server.</p></div>
+    <div class="card"><h3>Small and dependency-free</h3><p>Plain HTML and JS plus one Node bridge. Fork an app and ship a new one in minutes.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>That's the whole integration</h2>
+  <p>Tools are registered with the <a href="https://webmachinelearning.github.io/webmcp/">WebMCP</a> API. Claude calls them.</p>
+<pre><code>await document.modelContext.registerTool({
+  name: 'add_marker',
+  description: 'Drop a marker on the map',
+  inputSchema: { type: 'object', properties: { lat: { type: 'number' }, lng: { type: 'number' } } },
+  async execute({ lat, lng }) { map.addMarker(lat, lng); return { ok: true }; },
+});</code></pre>
+</section>
+
+<section>
+  <h2>See it work</h2>
+  <figure>
+    <img src="editor-example.png" width="1200" height="635" loading="lazy" alt="Markdown editor with Claude's replies in comment threads beside the document">
+    <figcaption><b>Editor.</b> Highlight text, leave a comment, and Claude edits the doc and replies in the thread. Every change is versioned.</figcaption>
+  </figure>
+  <figure>
+    <img src="maps-example.png" width="1200" height="636" loading="lazy" alt="Map of India with exam paper leaks plotted as dots and a ranked summary by state">
+    <figcaption><b>Maps.</b> Ask <code>/map exam paper leaks in India</code>. Claude researches, builds the layer and plots it across states and districts.</figcaption>
+  </figure>
+  <p class="dim" style="margin-top:22px">Also in the repo: a chat page Claude runs as its assistant, and a dino game it learns to play from the physics.</p>
+</section>
+
+<section id="try">
+  <h2>Try it</h2>
+  <p>Needs Node 22+ and Chrome.</p>
+<pre><code>git clone https://github.com/smarchone/webmcp-apps
+cd webmcp-apps/maps &amp;&amp; npm start    <span class="dim"># serve the page</span>
+claude                              <span class="dim"># second terminal, same folder; approve the webmcp server</span>
+&gt; /map exam paper leaks in India</code></pre>
+  <p>Chrome opens and Claude starts working. Build your own by copying an app folder, registering your tools, and adding a slash command that tells Claude how to use them.</p>
+</section>
+
+<footer>
+  <a href="https://github.com/smarchone/webmcp-apps">GitHub</a> ·
+  <a href="https://github.com/smarchone/webmcp-apps/blob/main/docs/webmcp-learnings.md">WebMCP API notes</a> ·
+  A testing ground, not a product.
+</footer>
+
+</main>
+</body>
+</html>

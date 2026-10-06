@@ -15,6 +15,10 @@ agent SDK.
 claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► document.modelContext tools
 ```
 
+| Editor: highlight text, comment, and Claude edits and replies in the thread | Maps: ask a question, and Claude plots the answer on India |
+| --- | --- |
+| <img src="docs/editor-example.png" alt="Markdown editor with Claude's replies in comment threads" width="480"> | <img src="docs/maps-example.png" alt="Map of India with exam paper leaks plotted as dots" width="480"> |
+
 ## Why it's worth a look
 
 - **Any page becomes an agent surface.** Add a few tools and Claude Code can read state and take actions. You
