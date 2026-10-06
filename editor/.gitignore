@@ -1,0 +1,8 @@
+node_modules/
+
+# Workspace: keep only the sample docs; ignore your own docs, comments and history
+workspace/*
+!workspace/README.md
+!workspace/specs/
+workspace/specs/*
+!workspace/specs/notifications.md

@@ -231,6 +231,28 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: { url: { type: 'string' } }, required: ['url'] },
     async run({ url }) {
       await ensureBrowser();
+      // Reuse a tab already showing this page (ignoring the #fragment) if it exposes tools
+      const samePage = (a, b) => {
+        try {
+          const [x, y] = [new URL(a), new URL(b)];
+          return x.origin === y.origin && x.pathname === y.pathname && x.search === y.search;
+        } catch {
+          return false;
+        }
+      };
+      for (const t of await pageTabs()) {
+        if (!samePage(t.url, url)) continue;
+        const tools = await pageTools(t.targetId);
+        if (!tools.length) continue;
+        await cdp.send('Target.activateTarget', { targetId: t.targetId }).catch(() => {});
+        return {
+          tab: shortId(t.targetId),
+          url: t.url,
+          title: t.title,
+          reused_existing_tab: true,
+          tools: tools.map((x) => ({ name: x.name, description: x.description })),
+        };
+      }
       // Open blank, let onAttached inject the interceptor, then navigate
       const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
       for (let i = 0; i < 50 && !injected.has(targetId); i++) await sleep(100);
