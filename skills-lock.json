@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "intuition-panel": {
+      "source": "smarchone/skills",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "productivity/intuition-panel/SKILL.md",
+      "computedHash": "5c5ebe1c3953264fc8af803f05586d9c7e0a3799ea0b25cac927db8feb91aac6"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebMCP Chat</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <main class="chat">
+      <header class="bar">
+        <div class="title">
+          <span class="dot" id="status-dot"></span>
+          <strong>WebMCP Chat</strong>
+          <span class="muted" id="status-text">checking for an agent…</span>
+        </div>
+        <div class="bar-actions">
+          <button class="ghost" id="toggle-panel">Workspace</button>
+          <button class="ghost" id="clear-chat">Clear</button>
+        </div>
+      </header>
+
+      <section class="messages" id="messages">
+        <div class="empty" id="empty">
+          <h1>Chat with an agent through WebMCP</h1>
+          <p>This page registers tools with <code>document.modelContext</code>. Any agent connected to the
+            browser, such as a Claude Code session with the WebMCP bridge, can read your messages, reply, and
+            act on the workspace.</p>
+          <div class="notice" id="no-webmcp" hidden>
+            <strong>No WebMCP in this browser.</strong> Open this page with the bridge
+            (<code>browser_open_page</code>) or in a Chrome build with WebMCP enabled.
+          </div>
+          <div class="suggestions">
+            <button data-prompt="Plan my morning: add 4 todos for a productive start.">Plan my morning</button>
+            <button data-prompt="What's on my todo list? Mark anything about email as done.">Review my todos</button>
+            <button data-prompt="Switch the page to dark mode with a teal accent.">Dark mode, teal accent</button>
+            <button data-prompt="What files are in your working directory? Summarize them in my notes.">Summarize your files into notes</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="agent-status" id="agent-status" hidden></div>
+
+      <form class="composer" id="composer">
+        <textarea id="input" rows="1" placeholder="Message the agent…" autocomplete="off"></textarea>
+        <button type="submit" id="send">Send</button>
+      </form>
+    </main>
+
+    <aside class="panel" id="panel">
+      <div class="panel-head">
+        <h2>Workspace</h2>
+        <span class="badge" id="tool-count"></span>
+      </div>
+
+      <h3>Todos</h3>
+      <form id="todo-form" class="todo-form">
+        <input id="todo-input" placeholder="Add a todo…" autocomplete="off" />
+      </form>
+      <ul class="todos" id="todos"></ul>
+
+      <h3>Notes</h3>
+      <textarea id="notes" class="notes" placeholder="Notes…"></textarea>
+
+      <h3>Theme</h3>
+      <div class="theme-row">
+        <button data-theme-choice="auto">Auto</button>
+        <button data-theme-choice="light">Light</button>
+        <button data-theme-choice="dark">Dark</button>
+      </div>
+
+      <h3>Agent activity</h3>
+      <ol class="activity" id="activity"></ol>
+    </aside>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

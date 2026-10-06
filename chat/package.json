@@ -1,0 +1,17 @@
+{
+  "name": "webmcp-chat",
+  "version": "0.2.0",
+  "private": true,
+  "description": "A WebMCP chat page plus a bridge that lets any Claude Code session use WebMCP tools on any web page",
+  "type": "module",
+  "bin": {
+    "webmcp-bridge": "bridge/webmcp-bridge.mjs"
+  },
+  "scripts": {
+    "start": "node serve.js",
+    "bridge": "node bridge/webmcp-bridge.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
