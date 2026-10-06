@@ -1,5 +1,9 @@
 # webmcp-apps
 
+> Let your local Claude Code interact with any WebMCP compatible frontend app.
+
+> or just Build rich agent experiences using WebMCP and local Claude Code.
+
 **Your web page is the UI. Claude Code is the brain. WebMCP is the wire between them.**
 
 A testing ground for building rich interfaces that a local Claude Code session drives through
