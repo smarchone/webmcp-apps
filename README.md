@@ -1,15 +1,14 @@
 # webmcp-apps
 
+**Connect Claude Code to your frontend app. No backend. No API keys. No agent SDK.**
+
 > Let your local Claude Code interact with any WebMCP compatible frontend app.
 
 > or just Build rich agentic experiences using WebMCP and local Claude Code.
 
-**Your web page is the UI. Claude Code is the brain. WebMCP is the wire between them.**
-
 A testing ground for building rich interfaces that a local Claude Code session drives through
 [WebMCP](https://webmachinelearning.github.io/webmcp/). Each page registers tools with
-`document.modelContext.registerTool(...)`, and Claude calls them. The pages have no backend, no API keys and no
-agent SDK. See the [project page](https://smarchone.github.io/webmcp-apps).
+`document.modelContext.registerTool(...)`, and Claude calls them. See the [project page](https://smarchone.github.io/webmcp-apps).
 
 ```
 claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► document.modelContext tools

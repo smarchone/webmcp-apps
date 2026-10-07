@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>webmcp-apps — your web app is the UI, Claude Code is the brain</title>
-<meta name="description" content="Let your local Claude Code drive any WebMCP-compatible web app. No backend, no API keys, no agent SDK.">
+<title>webmcp-apps — connect Claude Code to your frontend app</title>
+<meta name="description" content="Connect Claude Code to your frontend app. No backend. No API keys. No agent SDK.">
 <meta property="og:title" content="webmcp-apps">
-<meta property="og:description" content="Your web app is the UI. Claude Code is the brain. WebMCP is the wire between them.">
+<meta property="og:description" content="Connect Claude Code to your frontend app. No backend. No API keys. No agent SDK.">
 <meta property="og:image" content="maps-example.png">
 <style>
   :root {
@@ -51,6 +51,7 @@
   .link { flex: 0 0 76px; position: relative; display: flex; align-items: center; justify-content: center; }
   .link::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--accent); opacity: .75; }
   .link i { position: relative; background: var(--bg); padding: 0 6px; font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; color: var(--accent); }
+  .nos { margin: 0 0 22px; font-size: clamp(18px, 3vw, 24px); font-weight: 600; letter-spacing: -.01em; color: var(--accent); }
   .tagline { margin: 0 0 18px; font-size: clamp(18px, 3vw, 22px); font-weight: 500; letter-spacing: -.01em; color: var(--muted); }
   .tagline b { color: var(--accent); background: rgba(232,130,90,.12); border: 1px solid rgba(232,130,90,.35); border-radius: 999px; padding: 2px 12px; margin-right: 4px; font-weight: 600; white-space: nowrap; }
   @keyframes flow { to { background-position: 0 0; } }
@@ -77,9 +78,10 @@
 
 <header>
   <div class="eyebrow">webmcp-apps</div>
-  <h1>Your web page is the UI.<br><em>Claude Code</em> is the brain.</h1>
+  <h1>Connect <em>Claude Code</em> to your frontend app.</h1>
+  <p class="nos">No backend. No API keys. No agent SDK.</p>
   <h3 class="tagline"><b>WebMCP</b> is the wire between them.</h3>
-  <p class="lede">Expose a few tools from your existing web frontend (using WebMCP) and your local Claude Code can read its state and act on it. No backend, no API keys, no agent SDK.</p>
+  <p class="lede">Expose a few tools from your existing web frontend (using WebMCP), and your local Claude Code can read its state and act on it.</p>
   <div class="cta">
     <a class="btn primary" href="#try">Try it in 2 minutes</a>
     <a class="btn" href="https://github.com/smarchone/webmcp-apps">View on GitHub</a>
