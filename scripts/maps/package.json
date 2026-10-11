@@ -1,0 +1,17 @@
+{
+  "name": "webmcp-maps-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Builds the boundary files the maps app (apps/maps/) serves",
+  "type": "module",
+  "scripts": {
+    "build:boundaries": "node build-boundaries.mjs",
+    "build:world": "node build-world.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "mapshaper": "^0.6.113"
+  }
+}

@@ -26,41 +26,32 @@ claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools
 ```
 
 Chrome opens the page and Claude starts using its tools. Each page teaches Claude what to do through
-its own tools, so there's nothing else to install.
+its own tools, so there's nothing else to install. For better results, each page's install box has an
+Advanced section with a detailed prompt and a slash command.
 
 ## The apps
 
-| App                  | What Claude does                                                         | Run it                                                     |
-| -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| [`dino/`](dino/)     | Plays a dino runner from the game's physics and learns from each death   | [Live](https://smarchone.github.io/webmcp-apps/dino/)      |
-| [`maps/`](maps/)     | Analyses data and plots it on the world's countries and states, and India's districts and sub-districts | [Live](https://smarchone.github.io/webmcp-apps/maps/)      |
-| [`editor/`](editor/) | Edits Markdown docs with you and answers your comment threads            | From a clone                                               |
-| [`chat/`](chat/)     | Acts as a chat page's assistant and manages its todos, notes and theme   | From a clone                                               |
+| App                            | What Claude does                                                                              | Run it                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [`apps/dino/`](apps/dino/)     | Plays a dino runner from the game's physics and learns from each death                        | [Live](https://smarchone.github.io/webmcp-apps/dino/)  |
+| [`apps/maps/`](apps/maps/)     | Analyses data and plots it on the world's countries and states, and India's districts and sub-districts | [Live](https://smarchone.github.io/webmcp-apps/maps/)  |
+| [`editor/`](editor/)           | Edits Markdown docs with you and answers your comment threads                                 | From a clone                                           |
 
-![Markdown editor with Claude's replies in comment threads](docs/editor-example.png)
+![Markdown editor with Claude's replies in comment threads](apps/editor-example.png)
 
-## From a clone
+## Repo layout
 
-```bash
-git clone https://github.com/smarchone/webmcp-apps
-cd webmcp-apps/<app>
-npm start        # editor and chat only: starts the page's local server
-claude           # approve the webmcp server when asked
-```
-
-Then use the app's slash command:
-
-| App       | Command                               |
-| --------- | ------------------------------------- |
-| `dino/`   | `/play-dino`                          |
-| `maps/`   | `/map <what to analyse>`              |
-| `editor/` | `/review-docs` or `/address-comments` |
-| `chat/`   | `/webmcp-chat`                        |
+- `apps/`: everything GitHub Pages publishes (the project page, dino and maps). A workflow in
+  `.github/workflows/pages.yml` deploys it on every push to main.
+- `bridge/`: the WebMCP bridge, published to npm as `@smarchone/webmcp-bridge`.
+- `editor/`: the Markdown editor, which still needs its local server:
+  `cd editor && npm start`, then run `claude` there and use `/review-docs` or `/address-comments`.
+- `scripts/maps/`: rebuilds the map's boundary data.
+- `notes/`: [WebMCP learnings](notes/webmcp-learnings.md), the API gotchas we hit.
 
 ## Build your own
 
-1. Copy an app folder. Its `.mcp.json` already points at the shared bridge in [`bridge/`](bridge/).
-2. Register tools on your page:
+1. Add a page that registers tools:
 
    ```js
    await document.modelContext.registerTool({
@@ -71,7 +62,5 @@ Then use the app's slash command:
    });
    ```
 
-3. Add a slash command in `.claude/commands/` that tells Claude how to use them.
-
-[`bridge/README.md`](bridge/README.md) covers the bridge, and
-[`docs/webmcp-learnings.md`](docs/webmcp-learnings.md) has the API gotchas we hit.
+2. Say in the tool descriptions how Claude should use them, so a plain prompt works.
+3. Open it with the bridge. [`bridge/README.md`](bridge/README.md) covers how it works.

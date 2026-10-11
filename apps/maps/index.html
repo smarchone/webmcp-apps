@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="app/style.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel" id="panel">
+      <header class="brand">
+        <span class="logo">◉</span>
+        <strong>Maps</strong>
+        <span class="grow"></span>
+        <button class="theme-btn" id="theme"></button>
+      </header>
+
+      <div class="search">
+        <input id="search" type="search" placeholder="Find a country, state, district or taluk…" autocomplete="off" />
+        <ul class="results" id="results" hidden></ul>
+      </div>
+
+      <nav class="crumbs" id="crumbs"></nav>
+      <section class="region" id="region"></section>
+
+      <section class="layers">
+        <h2>Layers</h2>
+        <ul id="layers"></ul>
+        <div class="empty" id="layers-empty">
+          No data yet. Ask Claude to analyse something and plot it here, for example
+          <em>"plot complaints about potholes in Bengaluru by ward"</em>.
+        </div>
+      </section>
+
+      <footer class="sources" id="sources"></footer>
+    </aside>
+
+    <div class="resizer" id="resizer" title="Drag to resize · double-click to reset"></div>
+
+    <main class="stage" id="stage">
+      <div id="map"></div>
+      <div class="map-tools">
+        <button class="ghost" id="home" title="Back to the whole world">⌂ World</button>
+        <button class="ghost" id="open-table" title="Show the layers' rows as a table">▦ Table</button>
+        <button class="ghost" id="export" title="Save the map as an image">⤓ Export</button>
+      </div>
+      <div class="legend" id="legend" hidden></div>
+      <div class="tooltip" id="tooltip" hidden></div>
+      <div class="toast" id="toast" hidden></div>
+
+      <section class="table-drawer" id="table" hidden>
+        <div class="table-grip" title="Drag to resize"></div>
+        <header class="table-head">
+          <nav class="table-tabs"></nav>
+          <span class="grow"></span>
+          <input class="table-filter" type="search" placeholder="Filter rows…" />
+          <button class="chip" data-act="scope" title="Only rows in the region you're looking at"></button>
+          <span class="table-count muted"></span>
+          <button class="chip" data-act="csv" title="Download these rows as CSV">⤓ CSV</button>
+          <button class="icon-btn" data-act="close" title="Close">✕</button>
+        </header>
+        <div class="table-body"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="tt">
+    <section class="tt-pop" id="tt" aria-labelledby="tt-title">
+      <div class="tt-head"><b id="tt-title">Installation</b><button class="icon-btn" id="tt-x" aria-label="Close">✕</button></div>
+      <p class="tt-lead">Run these in a terminal to let Claude Code analyse data and plot it on this map.</p>
+      <span class="tt-step">1. Add the WebMCP bridge to Claude Code</span>
+      <div class="copy"><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy">Copy</button></div>
+      <span class="tt-step">2. Ask Claude to map something</span>
+      <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"</code><button data-copy="cmd-play" aria-label="Copy">Copy</button></div>
+      <p class="tt-foot">Run both in the same folder; Claude saves its data files there. Requires Node 22+ and Chrome.</p>
+      <details class="tt-adv">
+        <summary>Advanced</summary>
+        <p class="tt-lead">For better results, replace step 2 with either of these.</p>
+        <span class="tt-step">A. A detailed prompt</span>
+        <div class="copy"><code id="cmd-adv-prompt">claude 'Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and call get_map first. Research the IITs in India, write them to workspace/education/iits.csv with label, lat, lng and category, and plot them with rows: {"$file": "workspace/education/iits.csv"}. Set a source, headline the finding with set_title and zoom to where the story is.'</code><button data-copy="cmd-adv-prompt" aria-label="Copy">Copy</button></div>
+        <span class="tt-step">B. The <code>/map</code> command, then run <code>/map plot the IITs in India</code> in Claude Code</span>
+        <div class="copy"><code id="cmd-adv-command">mkdir -p .claude/commands && curl -fsSL https://smarchone.github.io/webmcp-apps/maps/map.md -o .claude/commands/map.md</code><button data-copy="cmd-adv-command" aria-label="Copy">Copy</button></div>
+      </details>
+    </section>
+    <button class="tt-btn" id="tt-btn" aria-expanded="true" aria-controls="tt">⤓ Install for Claude Code</button>
+  </div>
+  <script type="module" src="app/app.js"></script>
+</body>
+</html>
