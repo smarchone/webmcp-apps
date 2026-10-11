@@ -192,14 +192,6 @@ body.resizing { cursor: col-resize; user-select: none; }
 .results li:hover, .results li.active { background: var(--hover); }
 .results small { color: var(--muted); }
 
-.headline h1 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.25;
-  letter-spacing: -.01em;
-}
-.headline p { margin: 4px 0 0; }
-.headline p:empty { display: none; }
 
 .crumbs {
   display: flex;

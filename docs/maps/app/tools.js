@@ -268,7 +268,7 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     },
     {
       name: 'set_title',
-      description: 'Set the map headline and subtitle, shown on the page and on exported images. Keep the title to the finding, e.g. "Pothole complaints cluster in Bengaluru\'s east".',
+      description: 'Set the map headline and subtitle, shown on exported images and in the browser tab title. Keep the title to the finding, e.g. "Pothole complaints cluster in Bengaluru\'s east".',
       inputSchema: { type: 'object', properties: { title: { type: 'string' }, subtitle: { type: 'string' } } },
       execute: async (a) => store.setTitle(a),
     },
