@@ -6,6 +6,7 @@
 //   states.geojson, districts.geojson        simplified, with id/name/parent properties
 //   subdistricts/<state_code>.geojson        one file per state, loaded on demand
 //   regions.json                             index of every region: id, name, level, parent, label point, bbox
+// It also renames the cache in docs/maps/sw.js, so browsers that cached the old files fetch the new ones.
 //
 // States and the country outline are dissolved from the simplified districts, so their edges line up exactly.
 import fs from 'node:fs';
@@ -21,6 +22,7 @@ const ROOT = path.join(HERE, '..');
 const CACHE = path.join(ROOT, '.cache');
 const OUT = path.join(ROOT, '..', 'docs', 'maps', 'data', 'india');
 const TMP = path.join(CACHE, 'build');
+const SERVICE_WORKER = path.join(ROOT, '..', 'docs', 'maps', 'sw.js');
 
 const SOURCE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin';
 const RAW = {
@@ -177,6 +179,10 @@ async function main() {
     })
   );
   await rm(TMP, { recursive: true, force: true });
+
+  // New files need a new cache name, or browsers keep serving the copies they cached before
+  const sw = await readFile(SERVICE_WORKER, 'utf8');
+  await writeFile(SERVICE_WORKER, sw.replace(/const VERSION = '[^']*';/, `const VERSION = 'boundaries-${Date.now()}';`));
 
   const count = (level) => regions.filter((r) => r.level === level).length;
   console.log(`Wrote ${count('state')} states, ${count('district')} districts, ${count('subdistrict')} sub-districts to ${path.relative(ROOT, OUT)}/`);
