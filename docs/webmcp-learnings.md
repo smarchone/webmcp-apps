@@ -62,12 +62,12 @@ await document.modelContext.registerTool({
 ## 3. Connecting Claude Code to page tools: the bridge
 
 Claude Code can't reach into a browser tab, but it can talk to MCP servers. So the bridge
-(`chat/bridge/webmcp-bridge.mjs`) is a stdio MCP server that also controls Chrome through the
+(`bridge/webmcp-bridge.mjs`) is a stdio MCP server that also controls Chrome through the
 Chrome DevTools Protocol (CDP).
 
 **Flow:** `claude` → stdio MCP → bridge → CDP → Chrome tab → `document.modelContext`
 
-**The interceptor** (`chat/bridge/interceptor.js`) is injected into every tab before the page's own scripts run:
+**The interceptor** (`bridge/interceptor.js`) is injected into every tab before the page's own scripts run:
 - It wraps `registerTool` so every registered tool is recorded, and passes the call through to native WebMCP
   when the browser has it.
 - Without native WebMCP, it provides a minimal `document.modelContext` (`registerTool`, `getTools`, `executeTool`).

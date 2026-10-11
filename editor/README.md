@@ -49,7 +49,7 @@ You and Claude edit the same page. There's no mode to switch.
 ## Using it in your own repo
 
 ```bash
-claude mcp add --scope user webmcp -- node /abs/path/to/webmcp-apps/chat/bridge/webmcp-bridge.mjs
+claude mcp add --scope user webmcp -- node /abs/path/to/webmcp-apps/bridge/webmcp-bridge.mjs
 cp editor/.claude/commands/*.md ~/.claude/commands/
 cd editor && npm start -- /path/to/your/repo
 ```
