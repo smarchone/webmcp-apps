@@ -79,17 +79,16 @@ dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .log .act { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .log .why { color: var(--muted); padding-left: 18px; }
 
-.try { margin-top: 16px; }
-.try p { margin: 0 0 10px; }
-.try a { color: var(--accent); }
-.steps { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 10px; }
-.copy { display: flex; gap: 8px; align-items: flex-start; margin-top: 2px; }
-.copy code {
-  flex: 1; min-width: 0; overflow-wrap: anywhere;
-  background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
-  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+.try { display: grid; gap: 6px; margin-bottom: 16px; }
+.try p { margin: 2px 0 0; }
+.copy {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px 4px 4px 10px;
 }
-.copy button { flex: none; }
+.copy .n { color: var(--faint); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.copy code { flex: 1; min-width: 0; overflow-wrap: anywhere; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+.copy button { flex: none; border-color: transparent; padding: 4px 10px; font-size: 13px; color: var(--muted); }
+.copy button:hover { color: var(--text); }
 
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
