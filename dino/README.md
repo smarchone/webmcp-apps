@@ -2,18 +2,20 @@
 
 A Chrome-style dino runner that Claude Code plays through WebMCP. Humans can play it too.
 
+Play it in the browser: **https://smarchone.github.io/webmcp-apps/dino/**
+
 ## Run
 
-```bash
-cd dino
-npm start        # serves the game at http://127.0.0.1:3457
-```
-
-In another terminal, start `claude` in `dino/`, approve the `webmcp` server, then run:
+The game is a static page published on GitHub Pages from [`docs/dino/`](../docs/dino/), so there's no
+server to start. Start `claude` in `dino/`, approve the `webmcp` server, then run:
 
 ```
 /play-dino       # 1 game; /play-dino 3 for three
 ```
+
+Claude opens the GitHub Pages URL in Chrome through the bridge and plays it there.
+
+To play offline, `npm start` serves the same files at http://127.0.0.1:3457.
 
 The bridge is shared by every app (`../bridge/webmcp-bridge.mjs`), so it uses the same Chrome window.
 
