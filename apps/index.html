@@ -88,7 +88,7 @@
   <h1>Connect <em>Claude Code</em> to your frontend app.</h1>
   <p class="nos">No backend. No API keys. No agent SDK.</p>
   <h3 class="tagline"><b>WebMCP</b> is the wire between them.</h3>
-  <p class="lede">Expose a few tools from your existing web frontend (using WebMCP), and your local Claude Code can read its state and act on it.</p>
+  <p class="lede">Expose a few tools from your existing web frontend (using WebMCP), and your local Claude Code can read its state and act on it. Also works with other local agents that support MCP, like Codex, Gemini CLI, Cursor and VS Code.</p>
   <div class="cta">
     <a class="btn primary" href="#try">Try it in 2 minutes</a>
     <a class="btn" href="https://github.com/smarchone/webmcp-apps">View on GitHub</a>
@@ -150,6 +150,8 @@ claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools
 claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"</code></pre>
   <p>The <a href="maps/">map</a> and the <a href="dino/">dino game</a> are hosted right here: Chrome opens them, and Claude starts working through the bridge. Each page's install box has an Advanced section with a detailed prompt and a slash command.</p>
   <p>Build your own by adding a page that registers tools, and describing in those tools how Claude should use them.</p>
+  <p class="dim">Using another local agent (Codex, Gemini CLI, Cursor, VS Code, Claude Desktop and more)? Add the bridge to its MCP config:</p>
+<pre><code>{ "mcpServers": { "webmcp": { "command": "npx", "args": ["-y", "@smarchone/webmcp-bridge"] } } }</code></pre>
 </section>
 
 <footer>

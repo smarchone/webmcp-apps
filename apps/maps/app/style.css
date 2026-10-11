@@ -613,3 +613,4 @@ body.resizing { cursor: col-resize; user-select: none; }
   .stage { order: 1; }
   .table-filter { width: 110px; }
 }
+.tt-foot a { color: var(--accent); }

@@ -19,6 +19,12 @@ Add it to Claude Code from npm, for the current folder (add `-s user` to use it 
 claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge
 ```
 
+Other local agents that support MCP (Codex, Gemini CLI, Cursor, VS Code, Claude Desktop and more) take the same server in their MCP config:
+
+```json
+{ "mcpServers": { "webmcp": { "command": "npx", "args": ["-y", "@smarchone/webmcp-bridge"] } } }
+```
+
 Or from a clone:
 
 ```bash

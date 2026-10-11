@@ -29,6 +29,15 @@ Chrome opens the page and Claude starts using its tools. Each page teaches Claud
 its own tools, so there's nothing else to install. For better results, each page's install box has an
 Advanced section with a detailed prompt and a slash command.
 
+### Other agents
+
+The bridge is a plain stdio MCP server, so it also works with other local agents that support MCP
+(Codex, Gemini CLI, Cursor, VS Code, Claude Desktop and more). Add it to their MCP config:
+
+```json
+{ "mcpServers": { "webmcp": { "command": "npx", "args": ["-y", "@smarchone/webmcp-bridge"] } } }
+```
+
 ## The apps
 
 | App                            | What Claude does                                                                              | Run it                                                 |
