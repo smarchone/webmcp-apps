@@ -799,6 +799,7 @@ function bindPanel() {
     if (id) setFocus(id);
   });
   $('home').onclick = () => setFocus('in');
+  setupInstallTip();
   $('legend').addEventListener('click', (e) => {
     const key = e.target.closest('[data-key]')?.dataset.key;
     const id = e.target.closest('[data-layer]')?.dataset.layer;
@@ -1199,3 +1200,28 @@ main().catch((err) => {
   console.error(err);
   toast(`Failed to start: ${err.message}`);
 });
+
+// Install toggletip: open by default, remembers being closed
+function setupInstallTip() {
+  const KEY = 'webmcp-install-tip';
+  const set = (open) => {
+    $('tt').hidden = !open;
+    $('tt-btn').setAttribute('aria-expanded', String(open));
+    try { localStorage.setItem(KEY, open ? 'open' : 'closed'); } catch {}
+  };
+  try { if (localStorage.getItem(KEY) === 'closed') set(false); } catch {}
+  $('tt-btn').onclick = () => set($('tt').hidden);
+  $('tt-x').onclick = () => set(false);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('tt').hidden) set(false); });
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    btn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText($(btn.dataset.copy).textContent);
+        btn.textContent = 'Copied';
+      } catch {
+        btn.textContent = 'Select and copy';
+      }
+      setTimeout(() => (btn.textContent = 'Copy'), 1500);
+    };
+  }
+}

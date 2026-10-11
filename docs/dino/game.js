@@ -432,6 +432,18 @@ document.addEventListener('keyup', (e) => {
 });
 $('play').addEventListener('click', () => newGame('human'));
 
+// Install toggletip: open by default, remembers being closed
+const TIP_KEY = 'webmcp-install-tip';
+function setTip(open) {
+  $('tt').hidden = !open;
+  $('tt-btn').setAttribute('aria-expanded', String(open));
+  try { localStorage.setItem(TIP_KEY, open ? 'open' : 'closed'); } catch {}
+}
+try { if (localStorage.getItem(TIP_KEY) === 'closed') setTip(false); } catch {}
+$('tt-btn').addEventListener('click', () => setTip($('tt').hidden));
+$('tt-x').addEventListener('click', () => setTip(false));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('tt').hidden) setTip(false); });
+
 for (const btn of document.querySelectorAll('[data-copy]')) {
   btn.addEventListener('click', async () => {
     try {

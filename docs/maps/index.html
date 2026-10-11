@@ -51,6 +51,15 @@
     <main class="stage" id="stage">
       <div id="map"></div>
       <div class="map-tools">
+        <div class="tt">
+          <button class="ghost tt-btn" id="tt-btn" aria-expanded="true" aria-controls="tt">✳ Claude Code</button>
+          <section class="tt-pop" id="tt" aria-label="Let Claude Code map your data">
+            <div class="tt-head"><b>Let Claude Code map your data</b><button class="icon-btn" id="tt-x" aria-label="Close">✕</button></div>
+            <div class="copy"><span class="n">1</span><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy">Copy</button></div>
+            <div class="copy"><span class="n">2</span><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"</code><button data-copy="cmd-play" aria-label="Copy">Copy</button></div>
+            <p>Run both in one folder; Claude saves its data files there. Needs Node 22+ and Chrome.</p>
+          </section>
+        </div>
         <button class="ghost" id="home" title="Back to India">⌂ India</button>
         <button class="ghost" id="open-table" title="Show the layers' rows as a table">▦ Table</button>
         <button class="ghost" id="export" title="Save the map as an image">⤓ Export</button>
