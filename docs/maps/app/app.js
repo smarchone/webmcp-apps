@@ -1134,6 +1134,9 @@ async function main() {
     getJSON(`${DATA}/districts.geojson`),
     getJSON(`${DATA}/regions.json`),
   ]);
+  // Cache the boundary files in this browser (see sw.js). Registered once they've loaded, so the worker's copy
+  // of them is a revalidation, not a second download. The map works the same without it.
+  navigator.serviceWorker?.register('sw.js').catch((err) => console.warn('Service worker not registered:', err.message));
   geo.states = states;
   geo.districts = districts;
   loadIndexFrom(regionsJson);

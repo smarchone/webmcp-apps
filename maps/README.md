@@ -74,7 +74,9 @@ From India's [Local Government Directory](https://lgdirectory.gov.in/) (2024), v
 LGD codes (`in:district:525` is Bengaluru Urban). Every map and export says where the boundaries come from
 and that they are indicative.
 
-They are simplified and stored in `docs/maps/data/india/` (32 MB). To rebuild them (downloads ~400 MB once):
+They are simplified and stored in `docs/maps/data/india/` (32 MB). A service worker (`docs/maps/sw.js`) keeps each
+file in the browser after its first download, so repeat visits don't fetch them again. To rebuild them (downloads
+~400 MB once):
 
 ```bash
 npm install && npm run build:boundaries
