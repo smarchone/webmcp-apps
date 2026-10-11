@@ -1,21 +1,10 @@
 // WebMCP tools for the map. An agent connected to this page (e.g. Claude Code through the WebMCP bridge) does
-// its analysis with its own tools, writes the results to files in the workspace, and plots them with these.
-
-async function api(method, url, body) {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify({ ...body, by: 'claude' }) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-  return data;
-}
-
-const q = (params) => new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')).toString();
+// its analysis with its own tools, writes the results to files, and plots them with these. The page can't read
+// files: the bridge replaces a {"$file": "path"} argument with the file's text, so rows arrive in the call.
 
 const FILE_GUIDE = {
-  where: 'Write data files inside the workspace folder (see "workspace"). Pass paths relative to it.',
+  where:
+    'Write data files under workspace/ in the folder Claude Code runs in, then pass rows: {"$file": "workspace/<path>"} (the bridge inlines the file) and file: "<path>" (names the file in the layer, the table and error messages; its extension picks the format).',
   formats: '.csv, .tsv, .json (array of objects), .geojson (Point features) or .jsonl',
   points: {
     location: 'Either "lat" + "lng" columns (decimal degrees), or a "region" column (a region id like "in:district:525", or a name like "Bengaluru Urban"; add a "state" column when names repeat across states). Region-only rows are drawn at the region centre.',
@@ -24,8 +13,24 @@ const FILE_GUIDE = {
   regions: {
     columns: 'A region column ("region", or the level name such as "district") with an id, LGD code or name, an optional "state" column for disambiguation, and a numeric column (named "value", or pass value_field).',
   },
-  adding_later: 'To add data in a later session, write a new file and call plot_points / plot_regions with the same layer_id: files are appended to the layer. Editing a file that a layer already uses also updates the map automatically.',
+  adding_later:
+    'To add data in a later session, write a new file and call plot_points / plot_regions with the same layer_id: files are appended to the layer. The map does not watch files: after editing a file a layer uses, plot it again with the same layer_id and file to update it.',
+  saved: 'Layers are saved in this browser (title and settings in localStorage, rows in IndexedDB). If they are gone, plot the files again.',
 };
+
+const ROWS = {
+  description:
+    'The data: {"$file": "workspace/<path>"} so the bridge passes the file\'s text (CSV, TSV, JSON, GeoJSON or JSON Lines), or an array of row objects for a few rows',
+};
+const FILE = {
+  type: 'string',
+  description: 'The file\'s name or path, e.g. "complaints/potholes-2026-10.csv". Labels the rows; plotting the same file to the same layer again replaces its rows',
+};
+
+function plotError(err) {
+  if (!err.details) return err;
+  return new Error(`${err.message}. ${JSON.stringify(err.details)}`);
+}
 
 function layerSummary(l) {
   return {
@@ -43,21 +48,20 @@ function layerSummary(l) {
   };
 }
 
-export function buildTools({ getFocus, setFocus, exportImage }) {
+export function buildTools({ store, regions, getFocus, setFocus, exportImage }) {
   return [
     {
       name: 'get_map',
       description:
-        "Start here. Returns the map's title, its existing data layers (from earlier sessions too), the region the map is focused on, the workspace folder to write data files into, and the file formats the plot tools accept.",
+        "Start here. Returns the map's title, its existing data layers (from earlier sessions too), the region the map is focused on, and how to pass data files to the plot tools.",
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async () => {
-        const s = await api('GET', '/api/state');
+        const s = store.state();
         return {
           title: s.title,
           subtitle: s.subtitle,
           focus: getFocus(),
-          workspace: s.workspace,
           layers: s.layers.map(layerSummary),
           hierarchy: 'country "in" > state "in:state:<LGD code>" > district "in:district:<code>" > subdistrict "in:subdistrict:<code>"',
           boundaries: s.boundaries,
@@ -80,7 +84,7 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
         required: ['query'],
       },
       annotations: { readOnlyHint: true },
-      execute: async (a) => api('GET', `/api/regions/find?${q({ q: a.query, level: a.level, within: a.within, limit: a.limit })}`),
+      execute: async (a) => ({ matches: regions.find(a.query, { level: a.level, within: a.within, limit: Number(a.limit) || 5 }) }),
     },
     {
       name: 'list_regions',
@@ -93,16 +97,21 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
         },
       },
       annotations: { readOnlyHint: true },
-      execute: async (a) => api('GET', `/api/regions/list?${q({ parent: a.parent_id, level: a.level })}`),
+      execute: async (a) => {
+        const parent = a.parent_id || 'in';
+        if (!regions.get(parent)) throw new Error(`Unknown region: ${parent}`);
+        return { parent, regions: regions.children(parent, a.level) };
+      },
     },
     {
       name: 'plot_points',
       description:
-        'Plot points from a data file as a heatmap or dots. Creates a layer, or appends the file to an existing layer when layer_id matches one (use this to add data incrementally). Returns rows plotted, skipped rows with reasons, and the top states. See get_map for the file format.',
+        'Plot points from a data file as a heatmap or dots. Pass rows: {"$file": "workspace/<path>"} plus file. Creates a layer, or appends the file to an existing layer when layer_id matches one (use this to add data incrementally). Returns rows plotted, skipped rows with reasons, and the top states. See get_map for the file format.',
       inputSchema: {
         type: 'object',
         properties: {
-          file: { type: 'string', description: 'Path inside the workspace, e.g. "complaints/potholes-2026-10.csv"' },
+          rows: ROWS,
+          file: FILE,
           title: { type: 'string', description: 'Layer name shown on the map and in the legend. Required for a new layer; ignored when appending' },
           layer_id: { type: 'string', description: 'Existing layer to append to, or the id for a new layer' },
           replace: { type: 'boolean', description: 'Replace the layer\'s files with this one instead of appending' },
@@ -112,12 +121,13 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
           description: { type: 'string', description: 'One line on what the layer shows and how it was derived' },
           source: { type: 'string', description: 'Where the data came from, shown as attribution, e.g. "X posts, 1–7 Oct 2026"' },
         },
-        required: ['file'],
+        required: ['rows'],
       },
       execute: async (a) =>
-        api('POST', '/api/layers', {
+        store.plot({
           type: 'points',
           id: a.layer_id,
+          rows: a.rows,
           file: a.file,
           title: a.title,
           append: !a.replace,
@@ -125,16 +135,19 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
           style: { mode: a.style, color: a.color },
           description: a.description,
           source: a.source,
+        }).catch((err) => {
+          throw plotError(err);
         }),
     },
     {
       name: 'plot_regions',
       description:
-        'Colour regions by a value from a data file (choropleth), at state, district or sub-district level. Appends to an existing layer when layer_id matches. Returns matched regions, unmatched names with reasons, and the highest and lowest values.',
+        'Colour regions by a value from a data file (choropleth), at state, district or sub-district level. Pass rows: {"$file": "workspace/<path>"} plus file. Appends to an existing layer when layer_id matches. Returns matched regions, unmatched names with reasons, and the highest and lowest values.',
       inputSchema: {
         type: 'object',
         properties: {
-          file: { type: 'string', description: 'Path inside the workspace' },
+          rows: ROWS,
+          file: FILE,
           level: { type: 'string', enum: ['state', 'district', 'subdistrict'] },
           title: { type: 'string', description: 'Required for a new layer; ignored when appending' },
           value_field: { type: 'string', description: 'Numeric column to colour by. Default: a "value" column, or the only numeric column' },
@@ -150,12 +163,13 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
           description: { type: 'string' },
           source: { type: 'string' },
         },
-        required: ['file', 'level'],
+        required: ['rows', 'level'],
       },
       execute: async (a) =>
-        api('POST', '/api/layers', {
+        store.plot({
           type: 'regions',
           id: a.layer_id,
+          rows: a.rows,
           file: a.file,
           level: a.level,
           title: a.title,
@@ -165,6 +179,8 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
           aggregate: a.aggregate,
           description: a.description,
           source: a.source,
+        }).catch((err) => {
+          throw plotError(err);
         }),
     },
     {
@@ -188,7 +204,7 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
         required: ['layer_id'],
       },
       execute: async (a) =>
-        api('POST', '/api/layers/update', {
+        store.update({
           id: a.layer_id,
           title: a.title,
           description: a.description,
@@ -200,10 +216,10 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
     },
     {
       name: 'remove_layer',
-      description: 'Remove a layer from the map. Its data files stay in the workspace.',
+      description: 'Remove a layer from the map. Its data files stay where they are.',
       inputSchema: { type: 'object', properties: { layer_id: { type: 'string' } }, required: ['layer_id'] },
       annotations: { destructiveHint: true },
-      execute: async (a) => api('POST', '/api/layers/remove', { id: a.layer_id }),
+      execute: async (a) => store.remove(a.layer_id),
     },
     {
       name: 'summarize_layer',
@@ -220,7 +236,7 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
         required: ['layer_id'],
       },
       annotations: { readOnlyHint: true },
-      execute: async (a) => api('GET', `/api/layers/summary?${q({ id: a.layer_id, within: a.within, by: a.by, limit: a.limit })}`),
+      execute: async (a) => store.summarize(a.layer_id, { within: a.within, by: a.by, limit: Number(a.limit) || 15 }),
     },
     {
       name: 'show_region',
@@ -230,11 +246,12 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
         let id = a.region;
         if (/^india$/i.test(id.trim())) id = 'in';
         if (!/^in(:|$)/.test(id)) {
-          const { matches } = await api('GET', `/api/regions/find?${q({ q: a.region, limit: 1 })}`);
-          if (!matches.length) throw new Error(`No region matches "${a.region}"`);
-          id = matches[0].id;
+          const [match] = regions.find(a.region, { limit: 1 });
+          if (!match) throw new Error(`No region matches "${a.region}"`);
+          id = match.id;
         }
-        await api('POST', '/api/view', { region_id: id });
+        if (!regions.get(id)) throw new Error(`Unknown region: ${id}`);
+        store.broadcastView(id);
         await setFocus(id);
         return { focus: id };
       },
@@ -243,12 +260,12 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
       name: 'set_title',
       description: 'Set the map headline and subtitle, shown on the page and on exported images. Keep the title to the finding, e.g. "Pothole complaints cluster in Bengaluru\'s east".',
       inputSchema: { type: 'object', properties: { title: { type: 'string' }, subtitle: { type: 'string' } } },
-      execute: async (a) => api('POST', '/api/title', a),
+      execute: async (a) => store.setTitle(a),
     },
     {
       name: 'export_image',
       description:
-        'Save the current map view as a PNG with title, legend and data/boundary attribution, into <workspace>/exports/. Formats: current (as on screen), square (1080×1080, Instagram), wide (1600×900, X/Twitter), portrait (1080×1350).',
+        "Save the current map view as a PNG with title, legend and data/boundary attribution. The browser downloads it (to its downloads folder) and the result gives the file name. Formats: current (as on screen), square (1080×1080, Instagram), wide (1600×900, X/Twitter), portrait (1080×1350).",
       inputSchema: {
         type: 'object',
         properties: {
@@ -260,11 +277,12 @@ export function buildTools({ getFocus, setFocus, exportImage }) {
       },
       execute: async (a) => {
         if (a.region) {
-          await api('POST', '/api/view', { region_id: a.region });
+          if (!regions.get(a.region)) throw new Error(`Unknown region: ${a.region}`);
+          store.broadcastView(a.region);
           await setFocus(a.region, { fly: false });
         }
         const out = await exportImage({ format: a.format || 'current', title: a.title, subtitle: a.subtitle });
-        return { file: out.file, width: out.width, height: out.height, format: out.format };
+        return { file: out.file, saved_to: "the browser's downloads folder", width: out.width, height: out.height, format: out.format };
       },
     },
   ];

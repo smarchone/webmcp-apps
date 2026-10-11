@@ -5,15 +5,20 @@ scripts, the web, other MCP servers), writes the results to files, and plots the
 choropleths on states, districts and sub-districts. Layers persist, so later sessions keep adding to the
 same map.
 
+The map is plain static files: no app server, no build step.
+
 ## Run
+
+Serve this folder with any static file server:
 
 ```bash
 cd maps
-npm start                         # map + data in ./workspace
-npm start -- /path/to/folder      # or keep the map's data somewhere else
+npm start                         # python3 -m http.server 3459
 ```
 
-Open http://127.0.0.1:3459 in any browser. In another terminal, start `claude` in `maps/` and ask:
+`npx serve -l 3459` or any other static server works too, and so does a sub-path (for example GitHub Pages
+at `/webmcp-apps/maps/`): every URL the page loads is relative. In another terminal, start `claude` in
+`maps/` and ask:
 
 ```
 > /map pothole complaints in Bengaluru from this CSV, by sub-district
@@ -23,21 +28,29 @@ Open http://127.0.0.1:3459 in any browser. In another terminal, start `claude` i
 
 ```
 claude ── analysis ──► workspace/potholes.csv
-   └──── plot_points("potholes.csv") ──WebMCP──► page ──► server reads the file, places each point
-                                                           in its state / district / sub-district
+   └──── plot_points({ rows: {"$file": "workspace/potholes.csv"} }) ──► bridge inlines the file
+                                                                        ──WebMCP──► page parses the rows and
+                                                                        places each point in its state /
+                                                                        district / sub-district
 ```
 
-- **Data goes through files, not tool calls.** Claude writes CSV, GeoJSON or JSON Lines into the workspace
-  and passes the path. A 10,000-row file costs the same tokens as a 10-row one.
+- **Data goes through files, not the conversation.** Claude writes CSV, GeoJSON or JSON Lines into
+  `workspace/` and passes `{"$file": "workspace/<path>"}`. The [bridge](../bridge/) replaces that with the
+  file's text on the way to the page, so a 10,000-row file costs Claude the same tokens as a 10-row one.
 - **Points:** `lat`,`lng`, or a `region` name/id (drawn at the region's centre). An `id` column dedupes rows
   across appended batches. `weight`, `label`, `date`, `category`, `url` are optional.
 - **Region values:** a region column (`district`, `state` or `region`) plus a numeric column.
   Names are matched fuzzily, including old names (Bangalore, Gurgaon, Orissa). Ambiguous names (two
   Aurangabads) are reported back so Claude can add a `state` column.
-- **Adding later:** plotting a new file with an existing `layer_id` appends it. Editing a file a layer uses
-  updates every open tab.
-- **Export:** `export_image` (or the Export button) saves a PNG with title, legend and attribution to
-  `workspace/exports/`. Formats: `square` 1080×1080, `wide` 1600×900, `portrait` 1080×1350.
+- **Adding later:** plotting a new file with an existing `layer_id` appends it. The map doesn't watch files:
+  after editing one, Claude plots it again with the same `layer_id` and file name, which replaces that
+  file's rows.
+- **Saved in the browser:** the title and layer settings live in localStorage, the plotted rows in IndexedDB.
+  Every open tab of the map redraws when they change. They belong to one browser profile (the bridge's own
+  Chrome), so clearing its site data clears the map; the files are still in `workspace/`, and Claude can
+  plot them again.
+- **Export:** `export_image` (or the Export button) downloads a PNG with title, legend and attribution to the
+  browser's downloads folder. Formats: `square` 1080×1080, `wide` 1600×900, `portrait` 1080×1350.
 
 ## Using the map
 

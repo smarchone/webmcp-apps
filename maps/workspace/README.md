@@ -1,7 +1,7 @@
 # Maps workspace
 
-Claude writes data files here (CSV, GeoJSON, JSON Lines) and plots them on the map. The map remembers its
-layers in `.maps/state.json`, and exported images land in `exports/`.
+Claude writes data files here (CSV, GeoJSON, JSON Lines) and plots them on the map by passing
+`{"$file": "workspace/<path>"}`, which the bridge replaces with the file's text. The map itself is saved in
+the browser, so plotting a file again rebuilds a layer if the browser's data is cleared.
 
-Everything in this folder except this README is ignored by git. Start the server with another folder to keep
-a map somewhere else: `npm start -- /path/to/folder`.
+Everything in this folder except this README is ignored by git.

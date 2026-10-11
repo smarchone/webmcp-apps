@@ -1,7 +1,9 @@
 // Map UI. Shows India's admin hierarchy (country -> state -> district -> sub-district) and the data layers
-// Claude plots. Layers live on the server; this page renders them and follows live updates over SSE.
+// Claude plots. Layers are saved in this browser (see store.js); every open tab redraws when they change.
 import { registerTools } from './tools.js';
 import { createTable, save, load } from './table.js';
+import { RegionIndex } from './lib/regions.js';
+import { createStore } from './store.js';
 
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -37,13 +39,20 @@ let focus = 'in';
 let hoverId = null;
 let map;
 let table;
+let store;
 
-async function api(url, body) {
-  const res = await fetch(url, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
-  const out = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
-  return out;
-}
+// Boundaries load relative to the page, so the app also works under a sub-path (e.g. GitHub Pages)
+const DATA = 'data/india';
+const getJSON = (url) => fetch(url).then((r) => {
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  return r.json();
+});
+// Shared by the map and region matching: each state's sub-districts are fetched once
+const subFetches = new Map();
+const fetchSubdistricts = (code) => {
+  if (!subFetches.has(code)) subFetches.set(code, getJSON(`${DATA}/subdistricts/${code}.geojson`).catch(() => EMPTY));
+  return subFetches.get(code);
+};
 
 // ---------- Regions ----------
 
@@ -68,8 +77,7 @@ function describe(id) {
   return [LEVEL_NAME[r.level], above.join(', ')].filter(Boolean).join(' · ');
 }
 
-async function loadIndex() {
-  const res = await fetch('/data/india/regions.json').then((r) => r.json());
+function loadIndexFrom(res) {
   index.source = res.source;
   for (const r of res.regions) {
     index.byId.set(r.id, r);
@@ -84,7 +92,7 @@ async function loadSubdistricts(stateId) {
   const code = region(stateId)?.code;
   if (code == null || subByState.has(code)) return;
   subByState.set(code, []);
-  const fc = await fetch(`/data/india/subdistricts/${code}.geojson`).then((r) => (r.ok ? r.json() : EMPTY));
+  const fc = await fetchSubdistricts(code);
   subByState.set(code, fc.features);
   map.getSource('subdistricts')?.setData({ type: 'FeatureCollection', features: [...subByState.values()].flat() });
 }
@@ -102,7 +110,7 @@ function baseStyle() {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      country: { type: 'geojson', data: '/data/india/country.geojson' },
+      country: { type: 'geojson', data: new URL(`${DATA}/country.geojson`, location.href).href },
       states: { type: 'geojson', data: geo.states },
       districts: { type: 'geojson', data: geo.districts },
       subdistricts: { type: 'geojson', data: EMPTY },
@@ -247,7 +255,7 @@ const classOf = (d, v) => {
 };
 
 async function loadLayer(layer) {
-  const d = await api(`/api/layers/data?id=${encodeURIComponent(layer.id)}`);
+  const d = { ...(await store.data(layer.id)) };
   if (d.type === 'points') {
     d.allFeatures = d.geojson.features;
     d.categories = new Map();
@@ -649,9 +657,10 @@ function renderAll() {
   table?.render();
 }
 
-// ---------- Sync with the server ----------
+// ---------- Sync with the saved state ----------
 
 let syncing = Promise.resolve();
+const announced = new Map(); // layer id -> plotted count the user has been told about
 
 function sync(next) {
   syncing = syncing.then(async () => {
@@ -659,47 +668,47 @@ function sync(next) {
     for (const id of [...data.keys()]) {
       if (known.has(id)) continue;
       data.delete(id);
+      announced.delete(id);
       for (const l of mapLayerIds(id)) if (map.getLayer(l)) map.removeLayer(l);
       if (map.getSource(sourceId(id))) map.removeSource(sourceId(id));
     }
     const prev = new Map(app.layers.map((l) => [l.id, l]));
-    app = next;
+    const first = !app.loaded;
+    app = { ...next, loaded: true };
+    const changed = [];
     for (const layer of app.layers) {
       const old = prev.get(layer.id);
-      const reload = !data.has(layer.id) || old?.files.join() !== layer.files.join() || old?.value_field !== layer.value_field;
-      if (reload) await loadLayer(layer).catch((err) => console.warn(layer.id, err));
+      const reload = !data.has(layer.id) || old?.rev !== layer.rev || old?.files.join() !== layer.files.join() || old?.value_field !== layer.value_field;
+      if (!reload) continue;
+      try {
+        await loadLayer(layer);
+        changed.push(layer);
+      } catch (err) {
+        console.warn(layer.id, err);
+      }
     }
     renderAll();
+    for (const layer of changed) {
+      if (first) announced.set(layer.id, data.get(layer.id).stats.plotted);
+      else announceLayer(layer);
+    }
   });
   return syncing;
 }
 
-const announced = new Map(); // layer id -> plotted count the user has been told about
-
-function reloadLayer(id, info) {
-  syncing = syncing.then(async () => {
-    const layer = app.layers.find((l) => l.id === id);
-    if (!layer) return;
-    const fresh = data.get(id)?.key !== info.key;
-    if (fresh) {
-      await loadLayer(layer);
-      renderAll();
-    }
-    const n = data.get(id).stats.plotted;
-    const before = announced.get(id);
-    if (!fresh && before === n) return; // repeat event (file watchers fire twice)
-    announced.set(id, n);
-    const unit = layer.type === 'points' ? 'points' : plural(layer.level, 2);
-    const who = info.by === 'claude' ? 'Claude' : 'A file change';
-    if (before == null) toast(`${who} plotted “${layer.title}”: ${fmt.format(n)} ${unit}`);
-    else if (n > before) toast(`${who} added ${fmt.format(n - before)} ${unit} to “${layer.title}”`);
-    else toast(`“${layer.title}” updated`);
-    const el = document.querySelector(`.layer[data-id="${CSS.escape(id)}"]`);
-    el?.classList.remove('flash');
-    void el?.offsetWidth;
-    el?.classList.add('flash');
-  });
-  return syncing;
+function announceLayer(layer) {
+  const id = layer.id;
+  const n = data.get(id).stats.plotted;
+  const before = announced.get(id);
+  announced.set(id, n);
+  const unit = layer.type === 'points' ? 'points' : plural(layer.level, 2);
+  if (before == null) toast(`Claude plotted “${layer.title}”: ${fmt.format(n)} ${unit}`);
+  else if (n > before) toast(`Claude added ${fmt.format(n - before)} ${unit} to “${layer.title}”`);
+  else toast(`“${layer.title}” updated`);
+  const el = document.querySelector(`.layer[data-id="${CSS.escape(id)}"]`);
+  el?.classList.remove('flash');
+  void el?.offsetWidth;
+  el?.classList.add('flash');
 }
 
 let toastTimer;
@@ -708,24 +717,6 @@ function toast(text) {
   $('toast').hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($('toast').hidden = true), 3500);
-}
-
-function connect() {
-  const es = new EventSource('/api/events');
-  es.onopen = () => {
-    $('status').textContent = 'Live';
-    $('status').classList.add('live');
-  };
-  es.onerror = () => {
-    $('status').textContent = 'Offline';
-    $('status').classList.remove('live');
-  };
-  es.addEventListener('state_changed', (e) => sync(JSON.parse(e.data)));
-  es.addEventListener('layer_data_changed', (e) => {
-    const info = JSON.parse(e.data);
-    reloadLayer(info.id, info);
-  });
-  es.addEventListener('view', (e) => setFocus(JSON.parse(e.data).region_id).catch(() => {}));
 }
 
 // ---------- Interaction ----------
@@ -818,11 +809,7 @@ function bindPanel() {
   $('export').onclick = async () => {
     try {
       const out = await exportImage({ format: 'current' });
-      const a = document.createElement('a');
-      a.href = out.url;
-      a.download = out.file.split('/').pop();
-      a.click();
-      toast(`Saved ${out.file.split('/').slice(-2).join('/')}`);
+      toast(`Downloaded ${out.file}`);
     } catch (err) {
       toast(`Export failed: ${err.message}`);
     }
@@ -830,14 +817,14 @@ function bindPanel() {
   $('layers').addEventListener('change', async (e) => {
     const id = e.target.closest('.layer')?.dataset.id;
     const act = e.target.dataset.act;
-    if (act === 'toggle') await api('/api/layers/update', { id, visible: e.target.checked, by: 'user' });
-    if (act === 'mode') await api('/api/layers/update', { id, style: { mode: e.target.value }, by: 'user' });
+    if (act === 'toggle') store.update({ id, visible: e.target.checked });
+    if (act === 'mode') store.update({ id, style: { mode: e.target.value } });
   });
   $('layers').addEventListener('click', async (e) => {
     if (e.target.dataset.act === 'table') return table.open(e.target.closest('.layer').dataset.id);
     if (e.target.dataset.act !== 'remove') return;
     const layer = app.layers.find((l) => l.id === e.target.closest('.layer').dataset.id);
-    if (confirm(`Remove “${layer.title}” from the map? Its data files stay in the workspace.`)) await api('/api/layers/remove', { id: layer.id });
+    if (confirm(`Remove “${layer.title}” from the map? Its data files stay where they are.`)) await store.remove(layer.id);
   });
   bindSearch();
 }
@@ -1030,12 +1017,20 @@ export async function exportImage({ format = 'current', title, subtitle } = {}) 
     g.fillText('Made with Claude Code', W - px(32 * s), footY + px(44 * s));
     g.textAlign = 'left';
 
-    const res = await api('/api/exports', { data_url: out.toDataURL('image/png'), name: headTitle });
-    return { ...res, width: W, height: H, format };
+    const file = `${slugify(headTitle || 'map')}-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')}.png`;
+    const blob = await new Promise((resolve) => out.toBlob(resolve, 'image/png'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = file;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    return { file, width: W, height: H, format };
   } finally {
     restore.forEach((f) => f());
   }
 }
+
+const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'map';
 
 function wrapText(g, text, x, y, maxWidth, lineHeight) {
   let line = '';
@@ -1134,13 +1129,19 @@ function themeChanged() {
 
 async function main() {
   setTheme(load('maps.theme') || 'system');
-  const [states, districts] = await Promise.all([
-    fetch('/data/india/states.geojson').then((r) => r.json()),
-    fetch('/data/india/districts.geojson').then((r) => r.json()),
-    loadIndex(),
+  const [states, districts, regionsJson] = await Promise.all([
+    getJSON(`${DATA}/states.geojson`),
+    getJSON(`${DATA}/districts.geojson`),
+    getJSON(`${DATA}/regions.json`),
   ]);
   geo.states = states;
   geo.districts = districts;
+  loadIndexFrom(regionsJson);
+  const regions = new RegionIndex({ regions: structuredClone(regionsJson), states, districts, subdistricts: fetchSubdistricts });
+  store = createStore(regions, {
+    onChange: (next) => sync(next),
+    onView: (id) => region(id) && setFocus(id).catch(() => {}),
+  });
 
   map = new maplibregl.Map({
     container: 'map',
@@ -1184,12 +1185,10 @@ async function main() {
 
   const start = decodeURIComponent(location.hash.slice(1));
   await setFocus(region(start) ? start : 'in', { fly: !!region(start) && start !== 'in' });
-  await sync(await api('/api/state'));
-  for (const [id, d] of data) announced.set(id, d.stats.plotted);
+  await sync(store.state());
   table.restore();
-  connect();
 
-  const reg = await registerTools({ getFocus: () => focus, setFocus, exportImage });
+  const reg = await registerTools({ store, regions, getFocus: () => focus, setFocus, exportImage });
   console.log(reg.ok ? `WebMCP: ${reg.count} tools registered` : 'WebMCP not available (document.modelContext missing)');
 }
 

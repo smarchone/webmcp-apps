@@ -1,15 +1,23 @@
-// Reads a data file into plain records: CSV/TSV, JSON (array of objects or GeoJSON), JSON Lines.
+// Reads a data file's contents into plain records: CSV/TSV, JSON (array of objects or GeoJSON), JSON Lines.
 // Each record keeps its source line in __line; GeoJSON points carry their [lng, lat] in __coords.
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+// The file name only picks the format; without a known extension the format is guessed from the text.
 
-export async function parseFile(abs) {
-  const ext = path.extname(abs).toLowerCase();
-  const text = (await readFile(abs, 'utf8')).replace(/^﻿/, '');
+const extOf = (name) => (/\.[a-z0-9]+$/i.exec(String(name || ''))?.[0] || '').toLowerCase();
+
+// input: the file's text, or rows already parsed (an array of objects or a GeoJSON object)
+export function parseData(input, name) {
+  if (input != null && typeof input === 'object') return fromJson(input);
+  if (typeof input !== 'string') throw new Error("rows must be the file's text or an array of objects");
+  const text = input.replace(/^\uFEFF/, '');
+  let ext = extOf(name);
+  if (!['.csv', '.tsv', '.txt', '.json', '.geojson', '.jsonl', '.ndjson'].includes(ext)) {
+    if (ext && name !== 'inline') throw new Error(`Unsupported file type "${ext}" (use .csv, .tsv, .json, .geojson or .jsonl)`);
+    const head = text.trimStart();
+    ext = head.startsWith('[') ? '.json' : head.startsWith('{') ? (/^\{[^\n]*\}\s*\r?\n\s*\{/.test(head) ? '.jsonl' : '.json') : '.csv';
+  }
   if (ext === '.jsonl' || ext === '.ndjson') return parseJsonLines(text);
   if (ext === '.json' || ext === '.geojson') return parseJson(text);
-  if (ext === '.csv' || ext === '.tsv' || ext === '.txt') return parseCsv(text, ext === '.tsv' ? '\t' : null);
-  throw new Error(`Unsupported file type "${ext}" (use .csv, .tsv, .json, .geojson or .jsonl)`);
+  return parseCsv(text, ext === '.tsv' ? '\t' : null);
 }
 
 function parseJson(text) {
@@ -19,6 +27,10 @@ function parseJson(text) {
   } catch (err) {
     throw new Error(`Invalid JSON: ${err.message}`);
   }
+  return fromJson(data);
+}
+
+function fromJson(data) {
   if (data?.type === 'FeatureCollection') return data.features.flatMap(fromFeature);
   if (data?.type === 'Feature') return fromFeature(data, 0);
   const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.rows) ? data.rows : null;
