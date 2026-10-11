@@ -12,7 +12,7 @@ command, the `workspace/` your data files go in, and the boundary build script.
 ## Run
 
 Without a clone, add the bridge from npm in any folder and ask Claude to map something (the map's
-"✳ Claude Code" button shows the same commands with copy buttons):
+"Install for Claude Code" button shows the same commands with copy buttons):
 
 ```bash
 claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge

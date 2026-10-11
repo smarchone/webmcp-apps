@@ -10,7 +10,7 @@ The game is a static page published on GitHub Pages from [`docs/dino/`](../docs/
 server to start.
 
 Without a clone, add the bridge from npm in any folder and ask Claude to play (the game page's
-"✳ Claude Code" button shows the same commands with copy buttons):
+"Install for Claude Code" button shows the same commands with copy buttons):
 
 ```bash
 claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge

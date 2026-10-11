@@ -59,7 +59,7 @@ its `get_map` tool carries the workflow:
 claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"
 ```
 
-Both pages show these commands behind their "✳ Claude Code" button.
+Both pages show these commands behind their "Install for Claude Code" button.
 
 ### From a clone
 
