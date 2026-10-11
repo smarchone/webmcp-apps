@@ -216,7 +216,7 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     },
     {
       name: 'remove_layer',
-      description: 'Remove a layer from the map. Its data files stay where they are.',
+      description: 'Remove a layer from the map. Its data files stay where they are. Removing the last layer also clears the title and subtitle.',
       inputSchema: { type: 'object', properties: { layer_id: { type: 'string' } }, required: ['layer_id'] },
       annotations: { destructiveHint: true },
       execute: async (a) => store.remove(a.layer_id),

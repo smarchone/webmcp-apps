@@ -186,6 +186,8 @@ export function createStore(regions, { onChange, onView } = {}) {
       fresh();
       need(id);
       state.layers = state.layers.filter((l) => l.id !== id);
+      // The headline describes the data, so an empty map goes back to the default one
+      if (!state.layers.length) state.title = state.subtitle = '';
       cache.delete(id);
       commit();
       await tx('readwrite', (s) => {
