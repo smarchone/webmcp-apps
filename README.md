@@ -37,7 +37,7 @@ claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► 
 | [`chat/`](chat/)     | Acts as the assistant of a chat page, and manages its todos, notes and theme | 3456 |
 | [`dino/`](dino/)     | Plays a dino runner from the game's physics, and learns from each death ([live](https://smarchone.github.io/webmcp-apps/dino/)) | Pages |
 | [`editor/`](editor/) | Edits Markdown docs with you and answers your comment threads, with versions | 3458 |
-| [`maps/`](maps/)     | Analyses data and plots it on India's states, districts and sub-districts    | 3459 |
+| [`maps/`](maps/)     | Analyses data and plots it on India's states, districts and sub-districts ([live](https://smarchone.github.io/webmcp-apps/maps/)) | Pages |
 
 All four share one MCP server, [`bridge/`](bridge/), which their `.mcp.json` files point at.
 
@@ -53,8 +53,8 @@ claude                    # approve the webmcp server
 ```
 
 Chrome opens the [GitHub Pages copy of the game](https://smarchone.github.io/webmcp-apps/dino/) and Claude
-starts playing, with no local server. The other apps work the same way, except you start their server first
-(`npm start` in the app's folder), then run `claude` there and use its command:
+starts playing, with no local server. Maps works the same way from `maps/`. The other apps need their server
+first (`npm start` in the app's folder), then run `claude` there and use its command:
 
 | App       | Command                                  |
 | --------- | ---------------------------------------- |

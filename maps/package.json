@@ -5,7 +5,7 @@
   "description": "Map app where a Claude Code session plots its analysis on India's states, districts and sub-districts through WebMCP",
   "type": "module",
   "scripts": {
-    "start": "python3 -m http.server 3459 --bind 127.0.0.1",
+    "start": "python3 -m http.server 3459 --bind 127.0.0.1 --directory ../docs/maps",
     "build:boundaries": "node scripts/build-boundaries.mjs"
   },
   "engines": {

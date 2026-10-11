@@ -7,9 +7,9 @@ Analyse what the user asks for and plot it on the Maps page, using the `webmcp` 
 
 Request: $ARGUMENTS
 
-1. Open `http://127.0.0.1:3459` with `browser_open_page`. If that fails, ask the user to run `npm start` in
-   `maps/` (it serves the folder as static files). If several tabs expose tools, pass this tab's id to
-   `page_call_tool`.
+1. Open `https://smarchone.github.io/webmcp-apps/maps/` with `browser_open_page`. If that fails (offline),
+   ask the user to run `npm start` in `maps/` and open `http://127.0.0.1:3459` instead. If several tabs
+   expose tools, pass this tab's id to `page_call_tool`.
 2. Call `page_call_tool` → `get_map`. It lists the layers already on the map (from earlier sessions) and the
    file formats. If a layer already covers this topic, add to it instead of making a new one.
 3. Do the analysis with your own tools (files, scripts, web, other MCP servers). Keep raw data out of the

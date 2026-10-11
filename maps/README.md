@@ -5,24 +5,21 @@ scripts, the web, other MCP servers), writes the results to files, and plots the
 choropleths on states, districts and sub-districts. Layers persist, so later sessions keep adding to the
 same map.
 
-The map is plain static files: no app server, no build step.
+The map is plain static files: no app server, no build step. The page lives in [`docs/maps/`](../docs/maps/),
+so GitHub Pages publishes it at https://smarchone.github.io/webmcp-apps/maps/. This folder holds the `/map`
+command, the `workspace/` your data files go in, and the boundary build script.
 
 ## Run
 
-Serve this folder with any static file server:
-
-```bash
-cd maps
-npm start                         # python3 -m http.server 3459
-```
-
-`npx serve -l 3459` or any other static server works too, and so does a sub-path (for example GitHub Pages
-at `/webmcp-apps/maps/`): every URL the page loads is relative. In another terminal, start `claude` in
-`maps/` and ask:
+Start `claude` in `maps/` and ask:
 
 ```
 > /map pothole complaints in Bengaluru from this CSV, by sub-district
 ```
+
+Chrome opens the hosted map and Claude starts working. To use the map offline, serve it locally with
+`npm start` (`python3 -m http.server 3459` on `docs/maps/`) and open http://127.0.0.1:3459. Any other static
+server works too: every URL the page loads is relative.
 
 ## How it works
 
@@ -77,7 +74,7 @@ From India's [Local Government Directory](https://lgdirectory.gov.in/) (2024), v
 LGD codes (`in:district:525` is Bengaluru Urban). Every map and export says where the boundaries come from
 and that they are indicative.
 
-They are simplified and stored in `data/india/` (32 MB). To rebuild them (downloads ~400 MB once):
+They are simplified and stored in `docs/maps/data/india/` (32 MB). To rebuild them (downloads ~400 MB once):
 
 ```bash
 npm install && npm run build:boundaries
