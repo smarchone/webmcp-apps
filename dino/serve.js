@@ -1,11 +1,12 @@
-// Static file server for the WebMCP dino game (no backend logic).
+// Optional local server for the WebMCP dino game. The game itself lives in docs/dino/ so GitHub Pages
+// publishes it at https://smarchone.github.io/webmcp-apps/dino/; this serves the same files offline.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PORT = Number(process.env.PORT) || 3457;
-const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'app');
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'dino');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
 http

@@ -6,7 +6,8 @@ argument-hint: "[number of games, default 1]"
 Play the dino runner through its WebMCP tools, using the `webmcp` MCP server.
 
 Setup:
-1. Open `http://127.0.0.1:3457` with `browser_open_page`.
+1. Open `https://smarchone.github.io/webmcp-apps/dino/` with `browser_open_page`. If that fails (offline),
+   ask the user to run `npm start` in `dino/` and open `http://127.0.0.1:3457` instead.
 2. Call `page_call_tool` → `get_game_rules` once. Study the physics before playing.
 
 Play $ARGUMENTS games (1 if no number was given). For each game:
