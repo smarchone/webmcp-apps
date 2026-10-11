@@ -7,7 +7,7 @@
 //   browser_open_page, browser_list_tabs, page_list_tools, page_call_tool
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, realpath, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
@@ -221,6 +221,41 @@ async function resolveTab(tab) {
   );
 }
 
+// ---------- File arguments ----------
+
+// page_call_tool replaces any {"$file": "path"} in the arguments with that file's text, so a page can take
+// large data without it passing through the model. Paths resolve against the folder Claude Code runs in.
+const FILE_ROOT = process.cwd();
+const MAX_FILE_BYTES = 50e6;
+
+const isFileRef = (v) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 1 && typeof v.$file === 'string';
+
+async function readFileArg(file) {
+  const root = await realpath(FILE_ROOT);
+  let abs;
+  try {
+    abs = await realpath(path.resolve(root, file));
+  } catch {
+    throw new Error(`$file not found: ${file}`);
+  }
+  if (abs !== root && !abs.startsWith(root + path.sep)) throw new Error(`$file must be inside ${root}: ${file}`);
+  const info = await stat(abs);
+  if (!info.isFile()) throw new Error(`$file is not a file: ${file}`);
+  if (info.size > MAX_FILE_BYTES) throw new Error(`$file is larger than ${MAX_FILE_BYTES / 1e6} MB: ${file}`);
+  return readFile(abs, 'utf8');
+}
+
+async function expandFileArgs(value) {
+  if (isFileRef(value)) return readFileArg(value.$file);
+  if (Array.isArray(value)) return Promise.all(value.map(expandFileArgs));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = await expandFileArgs(v);
+    return out;
+  }
+  return value;
+}
+
 // ---------- Bridge tools ----------
 
 const TOOLS = [
@@ -301,17 +336,19 @@ const TOOLS = [
   },
   {
     name: 'page_call_tool',
-    description: "Call one of a page's WebMCP tools and return its result.",
+    description:
+      "Call one of a page's WebMCP tools and return its result. Any argument value written as {\"$file\": \"path\"} is replaced with that file's text before the call, so large data reaches the page without going through the conversation. Paths are relative to the folder Claude Code runs in.",
     inputSchema: {
       type: 'object',
       properties: {
         tool: { type: 'string', description: 'Tool name from page_list_tools' },
-        arguments: { type: 'object', description: "Arguments matching the tool's input schema" },
+        arguments: { type: 'object', description: 'Arguments matching the tool\'s input schema; {"$file": "path"} values are replaced with the file\'s text' },
         tab: { type: 'string', description: 'Tab id; optional if only one tab has tools' },
       },
       required: ['tool'],
     },
     async run({ tool, arguments: args = {}, tab }) {
+      args = await expandFileArgs(args);
       const t = await resolveTab(tab);
       const expr = `window.__webmcpBridge ? window.__webmcpBridge.call(${JSON.stringify(tool)}, ${JSON.stringify(args)}) : { content: [{ type: 'text', text: 'Page has no WebMCP tools.' }], isError: true }`;
       return { raw: await evaluate(t.targetId, expr) }; // already an MCP tool result

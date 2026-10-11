@@ -27,6 +27,19 @@ Bridge tools:
 | `page_list_tools`   | Full tool descriptions and input schemas for a tab               |
 | `page_call_tool`    | Call a page tool (`tab` is optional when only one tab has tools) |
 
+### Passing files to a page
+
+Any argument value written as `{"$file": "path"}` is replaced with that file's text before `page_call_tool` runs
+the page tool. Large data (a CSV, a long document) reaches the page without passing through the conversation:
+
+```json
+{ "tool": "plot_points", "arguments": { "title": "IITs", "rows": { "$file": "workspace/iits.csv" } } }
+```
+
+The page receives `rows` as the file's contents. Paths resolve against the folder Claude Code runs in, and files
+outside it, or over 50 MB, are refused. Only a value that is exactly `{"$file": "..."}` is replaced; every other
+argument is passed through unchanged.
+
 How it works:
 
 - The bridge launches a dedicated Chrome (profile in `~/.webmcp-bridge/chrome-profile`) with remote debugging.
