@@ -41,9 +41,21 @@ claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► 
 
 All four share one MCP server, [`bridge/`](bridge/), which their `.mcp.json` files point at.
 
-## Try it (2 minutes)
+## Try it (1 minute, no clone)
 
-Requires Node 22+ and Chrome.
+Requires Node 22+ and Chrome. Add the bridge to Claude Code once, then ask Claude to play:
+
+```bash
+claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge
+claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"
+```
+
+Chrome opens the [GitHub Pages copy of the game](https://smarchone.github.io/webmcp-apps/dino/) and Claude
+starts playing. The game's own `get_game_rules` tool teaches Claude the physics and strategy, so no slash
+command is needed. The same bridge works for the [live maps app](https://smarchone.github.io/webmcp-apps/maps/)
+and any other WebMCP page.
+
+### From a clone
 
 ```bash
 git clone https://github.com/smarchone/webmcp-apps
@@ -52,9 +64,8 @@ claude                    # approve the webmcp server
 > /play-dino
 ```
 
-Chrome opens the [GitHub Pages copy of the game](https://smarchone.github.io/webmcp-apps/dino/) and Claude
-starts playing, with no local server. Maps works the same way from `maps/`. The other apps need their server
-first (`npm start` in the app's folder), then run `claude` there and use its command:
+Maps works the same way from `maps/`. The other apps need their server first (`npm start` in the app's
+folder), then run `claude` there and use its command:
 
 | App       | Command                                  |
 | --------- | ---------------------------------------- |

@@ -432,6 +432,18 @@ document.addEventListener('keyup', (e) => {
 });
 $('play').addEventListener('click', () => newGame('human'));
 
+for (const btn of document.querySelectorAll('[data-copy]')) {
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($(btn.dataset.copy).textContent);
+      btn.textContent = 'Copied';
+    } catch {
+      btn.textContent = 'Select and copy';
+    }
+    setTimeout(() => (btn.textContent = 'Copy'), 1500);
+  });
+}
+
 // ---------- WebMCP tools ----------
 
 const RULES = {
@@ -463,12 +475,21 @@ const RULES = {
     'act resumes the game and returns at the next freeze, or with status "game_over".',
   ],
   tip: 'To jump an obstacle of height h and width w at speed v: during the (w + 44)px overlap the dino bottom y(t) must stay above altitude + h. Solve for when y(t) > that height, then convert to a gap: gap = v * t_rise.',
+  strategy: [
+    'Work out trigger_gap_px from the physics for every obstacle. Aim for the middle of the valid jump window, not the edge. The window moves as the game speeds up.',
+    'Birds: "low" must be jumped, "mid" can be ducked under, "high" passes over a standing dino (use "none"; jumping into it is fatal).',
+    'Check other_obstacles. If the next one is close, make sure you will have landed before you need to jump again.',
+    'Use recent_results and the dino state to check your plans are working.',
+    'On game_over, read cause_of_death, work out what went wrong, and adjust before the next game.',
+  ],
+  when_to_stop: 'Each obstacle costs one act call. Once a frozen state shows a score of 1000 or more, stop calling act and count the game as survived; a game with no deaths would otherwise never end.',
+  reporting: 'Keep thinking short between moves and do not narrate each move. At the end, give one short summary: the score of each game, the best score, and what you changed between games.',
 };
 
 const tools = [
   {
     name: 'get_game_rules',
-    description: 'Get the exact physics, hitboxes and obstacle sizes of the dino game, and how the agent controls work. Read this before playing.',
+    description: 'Get the exact physics, hitboxes and obstacle sizes of the dino game, how the agent controls work, a playing strategy and when to stop. Call this once before playing and follow it.',
     inputSchema: { type: 'object', properties: {} },
     annotations: { readOnlyHint: true },
     execute: async () => RULES,

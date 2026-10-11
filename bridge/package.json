@@ -1,14 +1,28 @@
 {
-  "name": "webmcp-bridge",
+  "name": "@smarchone/webmcp-bridge",
   "version": "0.2.0",
-  "private": true,
   "description": "A stdio MCP server that lets any Claude Code session use WebMCP tools on any web page",
   "type": "module",
   "bin": {
     "webmcp-bridge": "webmcp-bridge.mjs"
   },
+  "files": [
+    "webmcp-bridge.mjs",
+    "interceptor.js",
+    "README.md"
+  ],
   "scripts": {
     "start": "node webmcp-bridge.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smarchone/webmcp-apps.git",
+    "directory": "bridge"
+  },
+  "homepage": "https://github.com/smarchone/webmcp-apps/tree/main/bridge",
+  "keywords": ["mcp", "webmcp", "claude-code", "chrome-devtools-protocol"],
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=22"

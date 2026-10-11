@@ -25,6 +25,23 @@
       </div>
     </section>
 
+    <section class="card try">
+      <h2>Let Claude Code play</h2>
+      <p class="small">Needs <a href="https://code.claude.com/docs/en/quickstart">Claude Code</a>, Node 22+ and Chrome.
+        Run these in a terminal. Claude opens its own Chrome window and plays the game there.</p>
+      <ol class="steps">
+        <li>
+          <span class="small muted">Add the WebMCP bridge (once)</span>
+          <div class="copy"><code id="cmd-add">claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add">Copy</button></div>
+        </li>
+        <li>
+          <span class="small muted">Play</span>
+          <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"</code><button data-copy="cmd-play">Copy</button></div>
+        </li>
+      </ol>
+      <p class="small muted">Already in a Claude Code session? Paste just the quoted prompt.</p>
+    </section>
+
     <section class="grid">
       <div class="card">
         <h2>Stats</h2>
