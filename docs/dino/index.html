@@ -25,6 +25,20 @@
       </div>
     </section>
 
+    <details class="card install" id="install" open>
+      <summary>Let Claude Code play this game</summary>
+      <ol class="steps">
+        <li>
+          <span>Add the WebMCP bridge to Claude Code</span>
+          <div class="copy"><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy bridge command">Copy</button></div>
+        </li>
+        <li>
+          <span>Ask Claude to play</span>
+          <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"</code><button data-copy="cmd-play" aria-label="Copy play command">Copy</button></div>
+        </li>
+      </ol>
+      <p class="muted small">Run both in the same folder. Requires Node 22+ and Chrome.</p>
+    </details>
 
     <section class="grid">
       <div class="card">
@@ -44,18 +58,6 @@
     </section>
   </main>
 
-  <div class="tt">
-    <section class="tt-pop" id="tt" aria-labelledby="tt-title">
-      <div class="tt-head"><b id="tt-title">Installation</b><button class="tt-x" id="tt-x" aria-label="Close">✕</button></div>
-      <p class="tt-lead">Run these in a terminal to let Claude Code play this game.</p>
-      <span class="tt-step">1. Add the WebMCP bridge to Claude Code</span>
-      <div class="copy"><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy">Copy</button></div>
-      <span class="tt-step">2. Ask Claude to play</span>
-      <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"</code><button data-copy="cmd-play" aria-label="Copy">Copy</button></div>
-      <p class="tt-foot">Run both in the same folder. Requires Node 22+ and Chrome.</p>
-    </section>
-    <button class="tt-btn" id="tt-btn" aria-expanded="true" aria-controls="tt">⤓ Install for Claude Code</button>
-  </div>
   <script type="module" src="game.js"></script>
 </body>
 </html>
