@@ -1,14 +1,14 @@
-// Service worker: keeps India's boundary files (data/india/) in the browser, so repeat visits load them without
-// the network. The files the map needs at startup are cached when the worker installs (the page registers it
-// after loading them, so this costs a revalidation, not a download); each state's sub-districts the first time
-// they load.
+// Service worker: keeps the boundary files (data/world/ and data/india/) in the browser, so repeat visits load them
+// without the network. The files the map needs at startup are cached when the worker installs (the page registers
+// it after loading them, so this costs a revalidation, not a download); each country's states and each Indian
+// state's sub-districts the first time they load.
 // Everything else (the app's code, MapLibre, fonts) goes to the network as usual.
 //
-// VERSION names the cache. `npm run build:boundaries` (in maps/) rewrites it when it regenerates the files, so
-// browsers drop the old copies and fetch the new ones once.
-const VERSION = 'boundaries-2024-lgd';
-const DATA = new URL('data/india/', self.registration.scope).href;
-const STARTUP = ['country.geojson', 'states.geojson', 'districts.geojson', 'regions.json'];
+// VERSION names the cache. `npm run build:boundaries` and `npm run build:world` (in maps/) rewrite it when they
+// regenerate the files, so browsers drop the old copies and fetch the new ones once.
+const VERSION = 'boundaries-1791756896353';
+const DATA = new URL('data/', self.registration.scope).href;
+const STARTUP = ['world/countries.geojson', 'world/regions.json', 'india/states.geojson', 'india/districts.geojson', 'india/regions.json'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

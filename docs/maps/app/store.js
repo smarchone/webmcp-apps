@@ -111,8 +111,8 @@ export function createStore(regions, { onChange, onView } = {}) {
       else if (!layer.files.includes(file)) layer.files.push(file);
     } else {
       if (!body.title?.trim()) throw new Error('title is required for a new layer');
-      if (type === 'regions' && !['state', 'district', 'subdistrict'].includes(body.level)) {
-        throw new Error('level must be state, district or subdistrict');
+      if (type === 'regions' && !['country', 'state', 'district', 'subdistrict'].includes(body.level)) {
+        throw new Error('level must be country, state, district or subdistrict');
       }
       let id = slug(body.id || body.title);
       while (findLayer(id)) id = `${id}-2`;

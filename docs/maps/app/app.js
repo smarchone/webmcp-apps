@@ -1,17 +1,18 @@
-// Map UI. Shows India's admin hierarchy (country -> state -> district -> sub-district) and the data layers
+// Map UI. Shows the world's countries and states, with India's districts and sub-districts below its states
+// (world -> country -> state -> district -> sub-district), and the data layers
 // Claude plots. Layers are saved in this browser (see store.js); every open tab redraws when they change.
 import { registerTools } from './tools.js';
 import { createTable, save, load } from './table.js';
-import { RegionIndex } from './lib/regions.js';
+import { RegionIndex, combineRegions, LEVELS } from './lib/regions.js';
 import { createStore } from './store.js';
 
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
-const CHILD = { country: 'state', state: 'district', district: 'subdistrict' };
-const LEVEL_NAME = { country: 'Country', state: 'State', district: 'District', subdistrict: 'Sub-district' };
-const INDIA_BOUNDS = [[68, 6.5], [97.5, 37.2]];
+const CHILD = { world: 'country', country: 'state', state: 'district', district: 'subdistrict' };
+const LEVEL_NAME = { world: 'World', country: 'Country', state: 'State', district: 'District', subdistrict: 'Sub-district' };
+const WORLD_BOUNDS = [[-170, -56], [190, 75]];
 
 const PALETTES = {
   reds: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'],
@@ -31,11 +32,12 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 // ---------- State ----------
 
 const index = { byId: new Map(), kids: new Map(), source: null };
-const geo = { states: EMPTY, districts: EMPTY };
+const geo = { countries: EMPTY, states: EMPTY, districts: EMPTY };
+const worldStates = new Map(); // country id -> state features (India's are in geo.states)
 const subByState = new Map(); // state code -> features
 const data = new Map(); // layer id -> parsed + derived data
 let app = { title: '', subtitle: '', layers: [] };
-let focus = 'in';
+let focus = 'world';
 let hoverId = null;
 let map;
 let table;
@@ -43,11 +45,17 @@ let store;
 
 // Boundaries load relative to the page, so the app also works under a sub-path (e.g. GitHub Pages)
 const DATA = 'data/india';
+const WORLD = 'data/world';
 const getJSON = (url) => fetch(url).then((r) => {
   if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
   return r.json();
 });
-// Shared by the map and region matching: each state's sub-districts are fetched once
+// Shared by the map and region matching: each country's states and each state's sub-districts are fetched once
+const stateFetches = new Map();
+const fetchWorldStates = (id) => {
+  if (!stateFetches.has(id)) stateFetches.set(id, getJSON(`${WORLD}/states/${id}.geojson`).catch(() => EMPTY));
+  return stateFetches.get(id);
+};
 const subFetches = new Map();
 const fetchSubdistricts = (code) => {
   if (!subFetches.has(code)) subFetches.set(code, getJSON(`${DATA}/subdistricts/${code}.geojson`).catch(() => EMPTY));
@@ -74,11 +82,11 @@ function describe(id) {
   const r = region(id);
   if (!r) return '';
   const above = lineage(id).slice(1, -1).map((x) => region(x).name).reverse();
-  return [LEVEL_NAME[r.level], above.join(', ')].filter(Boolean).join(' · ');
+  return [r.kind || LEVEL_NAME[r.level], above.join(', ')].filter(Boolean).join(' · ');
 }
 
 function loadIndexFrom(res) {
-  index.source = res.source;
+  index.source = res.source; // [India's, the world's]
   for (const r of res.regions) {
     index.byId.set(r.id, r);
     if (r.parent) {
@@ -88,7 +96,18 @@ function loadIndexFrom(res) {
   }
 }
 
+async function loadStates(countryId) {
+  if (!countryId || countryId === 'in' || worldStates.has(countryId)) return;
+  worldStates.set(countryId, []);
+  const fc = await fetchWorldStates(countryId);
+  worldStates.set(countryId, fc.features);
+  map.getSource('states')?.setData(statesData());
+}
+
+const statesData = () => ({ type: 'FeatureCollection', features: [...geo.states.features, ...[...worldStates.values()].flat()] });
+
 async function loadSubdistricts(stateId) {
+  if (chain(stateId).country !== 'in') return;
   const code = region(stateId)?.code;
   if (code == null || subByState.has(code)) return;
   subByState.set(code, []);
@@ -98,7 +117,8 @@ async function loadSubdistricts(stateId) {
 }
 
 function featuresAt(level) {
-  if (level === 'state') return geo.states.features;
+  if (level === 'country') return geo.countries.features;
+  if (level === 'state') return statesData().features;
   if (level === 'district') return geo.districts.features;
   return [...subByState.values()].flat();
 }
@@ -110,26 +130,29 @@ function baseStyle() {
     version: 8,
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      country: { type: 'geojson', data: new URL(`${DATA}/country.geojson`, location.href).href },
-      states: { type: 'geojson', data: geo.states },
+      countries: { type: 'geojson', data: geo.countries },
+      states: { type: 'geojson', data: statesData() },
       districts: { type: 'geojson', data: geo.districts },
       subdistricts: { type: 'geojson', data: EMPTY },
       labels: { type: 'geojson', data: EMPTY },
     },
     layers: [
       { id: 'bg', type: 'background', paint: { 'background-color': css('--map-sea') } },
-      { id: 'land', type: 'fill', source: 'country', paint: { 'fill-color': css('--map-land') } },
-      // choropleths are inserted here (before mask-states)
+      { id: 'land', type: 'fill', source: 'countries', paint: { 'fill-color': css('--map-land') } },
+      // choropleths are inserted here (before mask-countries)
+      { id: 'mask-countries', type: 'fill', source: 'countries', paint: { 'fill-color': css('--map-mask'), 'fill-opacity': 0.62 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'mask-states', type: 'fill', source: 'states', paint: { 'fill-color': css('--map-mask'), 'fill-opacity': 0.62 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'mask-districts', type: 'fill', source: 'districts', paint: { 'fill-color': css('--map-mask'), 'fill-opacity': 0.55 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'mask-subdistricts', type: 'fill', source: 'subdistricts', paint: { 'fill-color': css('--map-mask'), 'fill-opacity': 0.5 }, filter: ['==', ['get', 'id'], ''] },
+      { id: 'hit-countries', type: 'fill', source: 'countries', paint: { 'fill-opacity': 0 } },
       { id: 'hit-states', type: 'fill', source: 'states', paint: { 'fill-opacity': 0 } },
       { id: 'hit-districts', type: 'fill', source: 'districts', paint: { 'fill-opacity': 0 } },
       { id: 'hit-subdistricts', type: 'fill', source: 'subdistricts', paint: { 'fill-opacity': 0 } },
       { id: 'subdistrict-lines', type: 'line', source: 'subdistricts', paint: { 'line-color': css('--map-line'), 'line-width': 0.5 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'district-lines', type: 'line', source: 'districts', paint: { 'line-color': css('--map-line'), 'line-width': 0.4, 'line-opacity': 0.5 } },
       { id: 'state-lines', type: 'line', source: 'states', paint: { 'line-color': css('--map-line-strong'), 'line-width': 0.9, 'line-opacity': 0.75 } },
-      { id: 'country-line', type: 'line', source: 'country', paint: { 'line-color': css('--map-line-strong'), 'line-width': 1.3 } },
+      { id: 'country-line', type: 'line', source: 'countries', paint: { 'line-color': css('--map-line-strong'), 'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.6, 4, 1.1] } },
+      { id: 'hover-country', type: 'line', source: 'countries', paint: { 'line-color': css('--accent'), 'line-width': 2.2 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'hover-state', type: 'line', source: 'states', paint: { 'line-color': css('--accent'), 'line-width': 2.2 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'hover-district', type: 'line', source: 'districts', paint: { 'line-color': css('--accent'), 'line-width': 2.2 }, filter: ['==', ['get', 'id'], ''] },
       { id: 'hover-subdistrict', type: 'line', source: 'subdistricts', paint: { 'line-color': css('--accent'), 'line-width': 2.2 }, filter: ['==', ['get', 'id'], ''] },
@@ -155,7 +178,7 @@ function applyTheme() {
   if (!map?.isStyleLoaded()) return;
   map.setPaintProperty('bg', 'background-color', css('--map-sea'));
   map.setPaintProperty('land', 'fill-color', css('--map-land'));
-  for (const l of ['mask-states', 'mask-districts', 'mask-subdistricts']) map.setPaintProperty(l, 'fill-color', css('--map-mask'));
+  for (const l of ['mask-countries', 'mask-states', 'mask-districts', 'mask-subdistricts']) map.setPaintProperty(l, 'fill-color', css('--map-mask'));
   map.setPaintProperty('subdistrict-lines', 'line-color', css('--map-line'));
   map.setPaintProperty('district-lines', 'line-color', css('--map-line'));
   map.setPaintProperty('state-lines', 'line-color', css('--map-line-strong'));
@@ -173,18 +196,23 @@ export async function setFocus(id, { fly = true } = {}) {
   if (!region(id)) throw new Error(`Unknown region: ${id}`);
   focus = id;
   const c = chain(id);
+  await loadStates(c.country);
   if (c.state) await loadSubdistricts(c.state);
   applyFocus({ fly });
-  history.replaceState(null, '', id === 'in' ? location.pathname : `#${id}`);
+  history.replaceState(null, '', id === 'world' ? location.pathname : `#${id}`);
 }
 
 function applyFocus({ fly }) {
   const r = region(focus);
   const c = chain(focus);
+  const ct = c.country;
   const st = c.state;
   const dt = c.district;
 
-  map.setFilter('mask-states', st ? ['!=', ['get', 'id'], st] : NONE);
+  map.setFilter('mask-countries', ct ? ['!=', ['get', 'id'], ct] : NONE);
+  map.setFilter('mask-states', st ? ['all', ['==', ['get', 'parent'], ct], ['!=', ['get', 'id'], st]] : NONE);
+  // India's states always (as before the world map), other countries' only when they're in focus
+  map.setFilter('state-lines', ['any', ['==', ['get', 'parent'], 'in'], ['==', ['get', 'parent'], ct ?? '']]);
   map.setFilter('mask-districts', dt ? ['all', ['==', ['get', 'state'], st], ['!=', ['get', 'id'], dt]] : NONE);
   map.setFilter('mask-subdistricts', r.level === 'subdistrict' ? ['all', ['==', ['get', 'parent'], dt], ['!=', ['get', 'id'], focus]] : NONE);
   map.setFilter('subdistrict-lines', dt ? ['==', ['get', 'parent'], dt] : NONE);
@@ -194,17 +222,17 @@ function applyFocus({ fly }) {
   const faint = css('--map-line');
   map.setPaintProperty('district-lines', 'line-color', st ? ['case', ['==', ['get', 'state'], st], strong, faint] : faint);
   map.setPaintProperty('district-lines', 'line-width', st ? ['case', ['==', ['get', 'state'], st], 0.7, 0.35] : 0.4);
-  map.setPaintProperty('district-lines', 'line-opacity', st ? 0.8 : ['interpolate', ['linear'], ['zoom'], 4, 0.35, 6, 0.7]);
+  map.setPaintProperty('district-lines', 'line-opacity', st ? 0.8 : ['interpolate', ['linear'], ['zoom'], 3, 0, 4, 0.35, 6, 0.7]);
 
   // Labels: the regions one level down (or siblings, at the bottom of the tree)
-  const labelled = r.level === 'subdistrict' ? index.kids.get(r.parent) || [] : index.kids.get(focus) || [];
+  const labelled = index.kids.get(focus) || index.kids.get(r.parent) || [];
   map.getSource('labels').setData({
     type: 'FeatureCollection',
     features: labelled.filter((x) => x.label).map((x) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: x.label }, properties: { name: x.name } })),
   });
 
   if (fly) {
-    if (focus === 'in') map.fitBounds(INDIA_BOUNDS, { padding: viewPadding(24), duration: 700 });
+    if (focus === 'world') map.fitBounds(WORLD_BOUNDS, { padding: viewPadding(24), duration: 700 });
     else map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: viewPadding(48), duration: 700, maxZoom: 11 });
   }
   renderCrumbs();
@@ -221,7 +249,7 @@ function viewPadding(base) {
 // What a click at this point would select: one level below the deepest region shared with the focus
 function targetAt(point) {
   const hit = (layer) => map.queryRenderedFeatures(point, { layers: [layer] })[0]?.properties.id;
-  const clicked = ['in', hit('hit-states'), hit('hit-districts'), hit('hit-subdistricts')];
+  const clicked = ['world', hit('hit-countries'), hit('hit-states'), hit('hit-districts'), hit('hit-subdistricts')];
   const end = clicked.findIndex((x) => !x);
   const path = end === -1 ? clicked : clicked.slice(0, end);
   if (path.length < 2) return null;
@@ -271,6 +299,10 @@ async function loadLayer(layer) {
     // Most common categories get colours; the rest share grey
     d.catColors = new Map([...d.categories].sort((a, b) => b[1] - a[1]).slice(0, COLORS.length - 1).map(([c], i) => [c, COLORS[i]]));
   } else {
+    if (d.level === 'state') {
+      const countries = new Set(Object.keys(d.values).map((id) => chain(id).country));
+      await Promise.all([...countries].map(loadStates));
+    }
     if (d.level === 'subdistrict') {
       const states = new Set(Object.keys(d.values).map((id) => chain(id).state));
       await Promise.all([...states].map(loadSubdistricts));
@@ -298,7 +330,7 @@ function derive(id) {
     d.counts = new Map();
     for (const f of features) {
       const p = f.properties;
-      for (const rid of ['in', p._state, p._district, p._subdistrict]) {
+      for (const rid of ['world', p._country, p._state, p._district, p._subdistrict]) {
         if (!rid) continue;
         const c = d.counts.get(rid) || { count: 0, weight: 0 };
         c.count++;
@@ -386,7 +418,7 @@ function renderMapLayers() {
         fill = ['step', ['get', 'value'], colors[0]];
         d.breaks.forEach((b, i) => fill.push(b, colors[i + 1]));
       }
-      addLayerSafely({ id: `data-${layer.id}-fill`, type: 'fill', source, paint: { 'fill-color': fill, 'fill-opacity': ['case', ['get', '_on'], opacity ?? 0.85, 0.12] } }, 'mask-states');
+      addLayerSafely({ id: `data-${layer.id}-fill`, type: 'fill', source, paint: { 'fill-color': fill, 'fill-opacity': ['case', ['get', '_on'], opacity ?? 0.85, 0.12] } }, 'mask-countries');
       continue;
     }
 
@@ -451,7 +483,7 @@ function statsFor(id) {
     if (!d || !layer.visible) continue;
     if (d.type === 'points') {
       const c = d.counts.get(id) || { count: 0, weight: 0 };
-      const total = d.counts.get('in')?.count || 0;
+      const total = d.counts.get('world')?.count || 0;
       out.push({ layer, kind: 'points', count: c.count, weight: c.weight, share: total ? c.count / total : 0 });
     } else if (d.level === r.level) {
       out.push({ layer, kind: 'value', value: d.values[id]?.value ?? null });
@@ -479,7 +511,7 @@ function rankedChildren(layer, parentId) {
   else return [];
   return rows.filter((x) => x.n).sort((a, b) => b.n - a.n);
 }
-const LEVEL_ORDER = (l) => ['country', 'state', 'district', 'subdistrict'].indexOf(l);
+const LEVEL_ORDER = (l) => LEVELS.indexOf(l);
 
 // Rolling region values up a level: counts add up, rates don't (Claude picks per layer; default shows the highest)
 function aggValue(layer, a) {
@@ -489,7 +521,8 @@ function aggValue(layer, a) {
   return a.max;
 }
 
-const plural = (level, n) => (n === 1 ? (level === 'subdistrict' ? 'sub-district' : level) : level === 'subdistrict' ? 'sub-districts' : `${level}s`);
+const NOUNS = { subdistrict: ['sub-district', 'sub-districts'], country: ['country', 'countries'] };
+const plural = (level, n) => (NOUNS[level] || [level, `${level}s`])[n === 1 ? 0 : 1];
 
 function swatchFor(layer) {
   const d = data.get(layer.id);
@@ -526,7 +559,7 @@ function renderRegion() {
 function statLine(s, id) {
   if (s.kind === 'points') {
     if (!s.count) return '<span class="muted">No points here</span>';
-    const share = id === 'in' ? '' : ` <span class="muted">· ${(s.share * 100).toFixed(s.share < 0.1 ? 1 : 0)}% of all</span>`;
+    const share = id === 'world' ? '' : ` <span class="muted">· ${(s.share * 100).toFixed(s.share < 0.1 ? 1 : 0)}% of all</span>`;
     return `<b>${fmt.format(s.count)}</b> <span class="muted">points</span>${share}`;
   }
   if (s.kind === 'value') return s.value == null ? '<span class="muted">No value</span>' : `<b>${fmt.format(s.value)}</b>`;
@@ -547,7 +580,7 @@ function renderLayers() {
     .map((l) => {
       const d = data.get(l.id);
       const n = d?.stats?.plotted ?? l.stats?.plotted ?? 0;
-      const what = l.type === 'points' ? `${fmt.format(n)} points` : `${fmt.format(n)} ${l.level === 'subdistrict' ? 'sub-districts' : `${l.level}s`}`;
+      const what = l.type === 'points' ? `${fmt.format(n)} points` : `${fmt.format(n)} ${plural(l.level, n)}`;
       const files = l.files.length > 1 ? ` · ${l.files.length} files` : '';
       const modes = l.type === 'points' ? ['heatmap', 'dots'] : ['choropleth'];
       return `<li class="layer ${l.visible ? '' : 'off'}" data-id="${esc(l.id)}">
@@ -633,16 +666,21 @@ function renderHeadline() {
 
 function sourcesText() {
   const data = [...new Set(app.layers.filter((l) => l.visible && l.source).map((l) => l.source))];
-  const b = index.source;
+  const named = (index.source || []).map((b) => `${b.name} (${b.vintage}, ${b.licence})`);
   return {
     data: data.length ? `Data: ${data.join('; ')}.` : '',
-    boundaries: `Boundaries: ${b?.name || 'LGD'} (${b?.vintage || ''}, ${b?.licence || ''}). Boundaries are indicative and may not be authoritative.`,
+    boundaries: `Boundaries: ${named.join('; ')}. Boundaries are indicative and may not be authoritative.`,
   };
 }
 
 function renderSources() {
   const s = sourcesText();
-  $('sources').innerHTML = `${esc(s.data)} ${s.data ? '<br/>' : ''}${esc(s.boundaries).replace('Bharatlas', '<a href="https://bharatlas.com" target="_blank" rel="noopener">Bharatlas</a>')}`;
+  let html = esc(s.boundaries);
+  for (const b of index.source || []) {
+    const site = b.name.includes('Bharatlas') ? 'Bharatlas' : b.name;
+    html = html.replace(esc(site), `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(site)}</a>`);
+  }
+  $('sources').innerHTML = `${esc(s.data)} ${s.data ? '<br/>' : ''}${html}`;
 }
 
 function renderAll() {
@@ -723,12 +761,12 @@ function setHover(id) {
   if (id === hoverId) return;
   hoverId = id;
   const level = region(id)?.level;
-  for (const l of ['state', 'district', 'subdistrict']) map.setFilter(`hover-${l}`, ['==', ['get', 'id'], level === l ? id : '']);
+  for (const l of ['country', 'state', 'district', 'subdistrict']) map.setFilter(`hover-${l}`, ['==', ['get', 'id'], level === l ? id : '']);
 }
 
 function pointTooltip(f) {
   const p = f.properties;
-  const where = [p._subdistrict, p._district, p._state].map((id) => region(id)?.name).filter(Boolean).join(', ');
+  const where = [p._subdistrict, p._district, p._state, p._country].map((id) => region(id)?.name).filter(Boolean).join(', ');
   return `<b>${esc(p._label || 'Point')}</b>${p._category ? `<div class="kind">${esc(p._category)}${p._date ? ` · ${esc(p._date)}` : ''}</div>` : p._date ? `<div class="kind">${esc(p._date)}</div>` : ''}
     <div class="kind">${esc(where)}${p._approx === true || p._approx === 'true' ? ' · placed at region centre' : ''}</div>`;
 }
@@ -796,7 +834,7 @@ function bindPanel() {
     const id = e.target.closest('li[data-id]')?.dataset.id;
     if (id) setFocus(id);
   });
-  $('home').onclick = () => setFocus('in');
+  $('home').onclick = () => setFocus('world');
   setupInstallTip();
   $('legend').addEventListener('click', (e) => {
     const key = e.target.closest('[data-key]')?.dataset.key;
@@ -969,7 +1007,7 @@ export async function exportImage({ format = 'current', title, subtitle } = {}) 
       map.jumpTo(camera);
     });
     const r = region(focus);
-    if (focus === 'in') map.fitBounds(INDIA_BOUNDS, { padding: 20 * s, duration: 0 });
+    if (focus === 'world') map.fitBounds(WORLD_BOUNDS, { padding: 20 * s, duration: 0 });
     else map.fitBounds([[r.bbox[0], r.bbox[1]], [r.bbox[2], r.bbox[3]]], { padding: 36 * s, duration: 0, maxZoom: 11 });
   }
   try {
@@ -1128,18 +1166,22 @@ function themeChanged() {
 
 async function main() {
   setTheme(load('maps.theme') || 'system');
-  const [states, districts, regionsJson] = await Promise.all([
+  const [countries, states, districts, worldJson, indiaJson] = await Promise.all([
+    getJSON(`${WORLD}/countries.geojson`),
     getJSON(`${DATA}/states.geojson`),
     getJSON(`${DATA}/districts.geojson`),
+    getJSON(`${WORLD}/regions.json`),
     getJSON(`${DATA}/regions.json`),
   ]);
+  const regionsJson = combineRegions(worldJson, indiaJson);
   // Cache the boundary files in this browser (see sw.js). Registered once they've loaded, so the worker's copy
   // of them is a revalidation, not a second download. The map works the same without it.
   navigator.serviceWorker?.register('sw.js').catch((err) => console.warn('Service worker not registered:', err.message));
+  geo.countries = countries;
   geo.states = states;
   geo.districts = districts;
   loadIndexFrom(regionsJson);
-  const regions = new RegionIndex({ regions: structuredClone(regionsJson), states, districts, subdistricts: fetchSubdistricts });
+  const regions = new RegionIndex({ regions: structuredClone(regionsJson), countries, states, districts, worldStates: fetchWorldStates, subdistricts: fetchSubdistricts });
   store = createStore(regions, {
     onChange: (next) => sync(next),
     onView: (id) => region(id) && setFocus(id).catch(() => {}),
@@ -1148,9 +1190,9 @@ async function main() {
   map = new maplibregl.Map({
     container: 'map',
     style: baseStyle(),
-    bounds: INDIA_BOUNDS,
+    bounds: WORLD_BOUNDS,
     fitBoundsOptions: { padding: 24 },
-    minZoom: 2,
+    minZoom: 0.5,
     maxZoom: 14,
     dragRotate: false,
     pitchWithRotate: false,
@@ -1186,7 +1228,7 @@ async function main() {
   };
 
   const start = decodeURIComponent(location.hash.slice(1));
-  await setFocus(region(start) ? start : 'in', { fly: !!region(start) && start !== 'in' });
+  await setFocus(region(start) ? start : 'world', { fly: !!region(start) && start !== 'world' });
   await sync(store.state());
   table.restore();
 

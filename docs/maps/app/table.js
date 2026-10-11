@@ -21,9 +21,10 @@ export function createTable(ctx) {
         { key: 'subdistrict', title: 'Sub-district', get: (f) => region(f.properties._subdistrict)?.name },
         { key: 'district', title: 'District', get: (f) => region(f.properties._district)?.name },
         { key: 'state', title: 'State', get: (f) => region(f.properties._state)?.name },
+        { key: 'country', title: 'Country', get: (f) => region(f.properties._country)?.name },
       ];
       if (d.maxW > 1) cols.push({ key: 'weight', title: 'Weight', get: (f) => f.properties._w, num: true });
-      const used = new Set(['label', 'title', 'name', 'summary', 'category', 'type', 'kind', 'topic', 'date', 'time', 'timestamp', 'created_at', 'datetime', 'url', 'link', 'source_url', 'weight', 'state', 'district', 'region']);
+      const used = new Set(['label', 'title', 'name', 'summary', 'category', 'type', 'kind', 'topic', 'date', 'time', 'timestamp', 'created_at', 'datetime', 'url', 'link', 'source_url', 'weight', 'country', 'state', 'district', 'region']);
       for (const k of extraKeys(d.geojson.features.slice(0, 200).map((f) => f.properties), used)) {
         cols.push({ key: `p:${k}`, title: k, get: (f) => f.properties[k] });
       }
@@ -33,9 +34,10 @@ export function createTable(ctx) {
     const lv = d.level;
     const cols = [{ key: 'region', title: lv === 'subdistrict' ? 'Sub-district' : lv[0].toUpperCase() + lv.slice(1), get: (r) => r.name }];
     if (lv === 'subdistrict') cols.push({ key: 'district', title: 'District', get: (r) => region(region(r.id)?.parent)?.name });
-    if (lv !== 'state') cols.push({ key: 'state', title: 'State', get: (r) => region(lineage(r.id)[1])?.name });
+    if (['district', 'subdistrict'].includes(lv)) cols.push({ key: 'state', title: 'State', get: (r) => region(lineage(r.id)[2])?.name });
+    if (lv !== 'country') cols.push({ key: 'country', title: 'Country', get: (r) => region(lineage(r.id)[1])?.name });
     cols.push({ key: 'value', title: d.value_field || 'value', get: (r) => r.value, num: true });
-    const used = new Set(['region', 'region_id', 'id', 'name', 'state', 'district', 'subdistrict', String(d.value_field || 'value').toLowerCase()]);
+    const used = new Set(['region', 'region_id', 'id', 'name', 'country', 'state', 'district', 'subdistrict', String(d.value_field || 'value').toLowerCase()]);
     for (const k of extraKeys(Object.values(d.values).slice(0, 200).map((v) => v.props), used)) {
       cols.push({ key: `p:${k}`, title: k, get: (r) => r.props[k] });
     }
@@ -55,10 +57,10 @@ export function createTable(ctx) {
     const lvl = region(focus)?.level;
     if (d.type === 'points') {
       const all = d.geojson.features;
-      return scoped && lvl !== 'country' ? all.filter((f) => f.properties[`_${lvl}`] === focus) : all;
+      return scoped && lvl !== 'world' ? all.filter((f) => f.properties[`_${lvl}`] === focus) : all;
     }
     const all = Object.entries(d.values).map(([id, v]) => ({ id, ...v }));
-    if (!scoped || lvl === 'country') return all;
+    if (!scoped || lvl === 'world') return all;
     // Rows inside the focus, or the row that contains it
     return all.filter((r) => lineage(r.id).includes(focus) || lineage(focus).includes(r.id));
   }
@@ -103,8 +105,8 @@ export function createTable(ctx) {
       .map((l) => `<button data-layer="${esc(l.id)}" class="${l.id === c.layer.id ? 'active' : ''}">${esc(l.title)}</button>`)
       .join('');
     const scopeBtn = el.querySelector('[data-act="scope"]');
-    scopeBtn.textContent = scoped && getFocus() !== 'in' ? `In ${focusName}` : 'All India';
-    scopeBtn.disabled = getFocus() === 'in';
+    scopeBtn.textContent = scoped && getFocus() !== 'world' ? `In ${focusName}` : 'Everywhere';
+    scopeBtn.disabled = getFocus() === 'world';
     const shown = c.rows.slice(0, LIMIT);
     el.querySelector('.table-count').textContent =
       c.rows.length > LIMIT ? `Showing ${fmt.format(LIMIT)} of ${fmt.format(c.rows.length)} rows` : `${fmt.format(c.rows.length)} ${c.rows.length === 1 ? 'row' : 'rows'}`;
@@ -143,7 +145,7 @@ export function createTable(ctx) {
     for (const r of c.rows) lines.push(cols.map((col) => cell(col.get(r))).join(','));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
-    a.download = `${c.layer.id}${scoped && getFocus() !== 'in' ? `-${region(getFocus()).name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}.csv`;
+    a.download = `${c.layer.id}${scoped && getFocus() !== 'world' ? `-${region(getFocus()).name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : ''}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }

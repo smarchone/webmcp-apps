@@ -1,4 +1,4 @@
-// Turns the rows Claude plots into map data: points placed in their state / district / sub-district, or values
+// Turns the rows Claude plots into map data: points placed in their country / state / district / sub-district, or values
 // matched to regions. Pure functions over a RegionIndex, so the page (and tests in Node) can run them.
 import { parseData } from './lib/parse.js';
 
@@ -36,12 +36,12 @@ async function loadPoints(regions, layer, sources) {
       let where;
       if (coords) {
         where = await regions.locate(coords[0], coords[1]);
-        if (!where.state) {
-          skip(skipped, file, r.__line, `outside India (${coords[1]}, ${coords[0]})`);
+        if (!where.country) {
+          skip(skipped, file, r.__line, `not in any country (${coords[1]}, ${coords[0]})`);
           continue;
         }
       } else if (p.region) {
-        const { region, error } = regions.resolve(p.region, { state: p.state });
+        const { region, error } = regions.resolve(p.region, { state: p.state, country: p.country });
         if (!region) {
           skip(skipped, file, r.__line, error);
           continue;
@@ -63,6 +63,7 @@ async function loadPoints(regions, layer, sources) {
           _category: p.category,
           _url: p.url,
           _approx: !p.coords,
+          _country: where.country || null,
           _state: where.state || null,
           _district: where.district || null,
           _subdistrict: where.subdistrict || null,
@@ -79,7 +80,7 @@ async function loadPoints(regions, layer, sources) {
 }
 
 // Columns that name a region rather than measure it
-const REGION_COLUMNS = new Set(['region', 'region_id', 'id', 'name', 'state', 'district', 'subdistrict', 'code', 'lgd', 'lgd_code', 'state_code', 'district_code']);
+const REGION_COLUMNS = new Set(['region', 'region_id', 'id', 'name', 'country', 'state', 'district', 'subdistrict', 'code', 'lgd', 'lgd_code', 'iso', 'iso_code', 'country_code', 'state_code', 'district_code']);
 
 function detectValueField(records) {
   const sample = records.slice(0, 200);
@@ -119,7 +120,11 @@ async function loadRegionValues(regions, layer, sources) {
         skip(skipped, file, r.__line, `no region column (use "region" or "${layer.level}")`);
         continue;
       }
-      const { region: match, error } = regions.resolve(String(ref), { level: layer.level, state: layer.level === 'state' ? null : lower.state });
+      const { region: match, error } = regions.resolve(String(ref), {
+        level: layer.level,
+        country: layer.level === 'country' ? null : lower.country,
+        state: ['country', 'state'].includes(layer.level) ? null : lower.state,
+      });
       if (!match) {
         skip(skipped, file, r.__line, error);
         continue;
@@ -168,8 +173,7 @@ const FIELD = {
   date: ['date', 'time', 'timestamp', 'created_at', 'datetime'],
   category: ['category', 'type', 'kind', 'topic'],
   url: ['url', 'link', 'source_url'],
-  region: ['region', 'region_id', 'place', 'location', 'district', 'city'],
-  state: ['state'],
+  region: ['region', 'region_id', 'place', 'location', 'district', 'city', 'state', 'country'],
 };
 
 function pick(lower, names) {
@@ -181,6 +185,7 @@ function normalizePoint(r, weightField) {
   // GeoJSON features arrive with __coords already set by the parser
   const lower = lowerKeys(r);
   let coords = r.__coords || null;
+  const region = lower.region_id ?? pick(lower, FIELD.region);
   if (!coords) {
     const lat = Number(pick(lower, FIELD.lat));
     const lng = Number(pick(lower, FIELD.lng));
@@ -198,18 +203,20 @@ function normalizePoint(r, weightField) {
     date: pick(lower, FIELD.date),
     category: pick(lower, FIELD.category),
     url: pick(lower, FIELD.url),
-    region: lower.region_id ?? pick(lower, FIELD.region),
-    state: lower.state ?? null,
+    region,
+    // The state and country columns narrow a name down, unless the name is the state or country itself
+    state: region === lower.state || region === lower.country ? null : lower.state ?? null,
+    country: region === lower.country ? null : lower.country ?? null,
     props,
   };
 }
 
 // ---------- Summaries ----------
 
-const CHILD = { country: 'state', state: 'district', district: 'subdistrict' };
+const CHILD = { world: 'country', country: 'state', state: 'district', district: 'subdistrict' };
 
 export function summarize(regions, layer, data, { by, within, limit = 15 } = {}) {
-  const scope = regions.get(within ? regions.resolveId(within) : 'in');
+  const scope = regions.get(within ? regions.resolveId(within) : 'world');
   if (!scope) throw new Error(`Unknown region: ${within}`);
   const level = by || CHILD[scope.level];
   if (!level) throw new Error(`Can't group a ${scope.level} into smaller regions`);
@@ -219,7 +226,7 @@ export function summarize(regions, layer, data, { by, within, limit = 15 } = {})
     let total = 0, weight = 0, approx = 0;
     for (const f of data.geojson.features) {
       const p = f.properties;
-      if (scope.level !== 'country' && p[`_${scope.level}`] !== scope.id) continue;
+      if (scope.level !== 'world' && p[`_${scope.level}`] !== scope.id) continue;
       total++;
       weight += p._w;
       const key = p[`_${level}`];
@@ -247,7 +254,7 @@ export function summarize(regions, layer, data, { by, within, limit = 15 } = {})
   }
 
   const rows = Object.entries(data.values)
-    .filter(([id]) => scope.level === 'country' || regions.chain(id)[scope.level] === scope.id)
+    .filter(([id]) => scope.level === 'world' || regions.chain(id)[scope.level] === scope.id)
     .map(([id, v]) => ({ region_id: id, name: v.name, value: v.value }));
   rows.sort((a, b) => b.value - a.value);
   const sum = rows.reduce((s, r) => s + r.value, 0);
