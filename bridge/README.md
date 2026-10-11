@@ -12,10 +12,10 @@ WebMCP tools (`document.modelContext`) of any web page. Every app in this repo p
 
 ## Using it with any session or page
 
-Add it to Claude Code from npm, for every project:
+Add it to Claude Code from npm, for the current folder (add `-s user` to use it in every project):
 
 ```bash
-claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge
+claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge
 ```
 
 Or from a clone:

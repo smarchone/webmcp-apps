@@ -9,11 +9,11 @@ Play it in the browser: **https://smarchone.github.io/webmcp-apps/dino/**
 The game is a static page published on GitHub Pages from [`docs/dino/`](../docs/dino/), so there's no
 server to start.
 
-Without a clone, add the bridge from npm once and ask Claude to play (the game page shows the same commands
+Without a clone, add the bridge from npm in any folder and ask Claude to play (the game page shows the same commands
 with copy buttons):
 
 ```bash
-claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge
+claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge
 claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"
 ```
 

@@ -43,10 +43,10 @@ All four share one MCP server, [`bridge/`](bridge/), which their `.mcp.json` fil
 
 ## Try it (1 minute, no clone)
 
-Requires Node 22+ and Chrome. Add the bridge to Claude Code once, then ask Claude to play:
+Requires Node 22+ and Chrome. In any folder, add the bridge to Claude Code, then ask Claude to play:
 
 ```bash
-claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge
+claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge
 claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"
 ```
 
