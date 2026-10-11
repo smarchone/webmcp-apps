@@ -628,8 +628,6 @@ function legendBody(s) {
 }
 
 function renderHeadline() {
-  $('map-title').textContent = app.title || 'India';
-  $('map-subtitle').textContent = app.subtitle || '';
   document.title = app.title ? `${app.title} · Maps` : 'Maps';
 }
 
