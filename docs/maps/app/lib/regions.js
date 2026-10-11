@@ -1,8 +1,6 @@
 // India's admin hierarchy: country -> state -> district -> sub-district.
 // Looks regions up by id, LGD code or (fuzzy) name, and finds which regions contain a point.
-import fs from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+// Runs on the boundary files the page loads; sub-district shapes are fetched one state at a time.
 
 export const LEVELS = ['country', 'state', 'district', 'subdistrict'];
 
@@ -150,20 +148,17 @@ function contains(shape, x, y) {
 // ---------- Index ----------
 
 export class RegionIndex {
-  constructor(dir) {
-    this.dir = dir;
+  // regions: regions.json's contents; states, districts: the GeoJSON files;
+  // subdistricts(code): resolves to a state's sub-district FeatureCollection (or null)
+  constructor({ regions, states, districts, subdistricts }) {
+    this.loadSubdistricts = subdistricts;
     this.byId = new Map();
     this.kids = new Map();
     this.byCode = new Map(); // `${level}:${code}` -> region
     this.shapes = { state: [], district: new Map() }; // district shapes grouped by state
-    this.subShapes = new Map(); // state id -> Map(district id -> shapes)
-    this.source = null;
-  }
-
-  async load() {
-    const { source, regions } = JSON.parse(await readFile(path.join(this.dir, 'regions.json'), 'utf8'));
-    this.source = source;
-    for (const r of regions) {
+    this.subShapes = new Map(); // state id -> Promise<Map(district id -> shapes)>
+    this.source = regions.source;
+    for (const r of regions.regions) {
       r.key = key(r.name);
       this.byId.set(r.id, r);
       if (r.code) this.byCode.set(`${r.level}:${r.code}`, r);
@@ -172,9 +167,7 @@ export class RegionIndex {
         this.kids.get(r.parent).push(r);
       }
     }
-    const states = JSON.parse(await readFile(path.join(this.dir, 'states.geojson'), 'utf8'));
     this.shapes.state = states.features.map(prepare).filter(Boolean);
-    const districts = JSON.parse(await readFile(path.join(this.dir, 'districts.geojson'), 'utf8'));
     for (const f of districts.features) {
       const shape = prepare(f);
       if (!shape) continue;
@@ -263,7 +256,7 @@ export class RegionIndex {
   }
 
   // Which state / district / sub-district contains a point
-  locate(lng, lat) {
+  async locate(lng, lat) {
     const out = {};
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return out;
     const state = nearest(this.shapes.state, lng, lat);
@@ -273,26 +266,27 @@ export class RegionIndex {
     const district = nearest(this.shapes.district.get(state.id) || [], lng, lat);
     if (!district) return out;
     out.district = district.id;
-    const sub = nearest(this.subdistrictShapes(state.id).get(district.id) || [], lng, lat);
+    const sub = nearest((await this.subdistrictShapes(state.id)).get(district.id) || [], lng, lat);
     if (sub) out.subdistrict = sub.id;
     return out;
   }
 
   subdistrictShapes(stateId) {
-    if (this.subShapes.has(stateId)) return this.subShapes.get(stateId);
-    const byDistrict = new Map();
-    const code = this.byId.get(stateId)?.code;
-    const file = path.join(this.dir, 'subdistricts', `${code}.geojson`);
-    if (fs.existsSync(file)) {
-      for (const f of JSON.parse(fs.readFileSync(file, 'utf8')).features) {
-        const shape = prepare(f);
-        if (!shape) continue;
-        const d = f.properties.parent;
-        if (!byDistrict.has(d)) byDistrict.set(d, []);
-        byDistrict.get(d).push(shape);
-      }
+    if (!this.subShapes.has(stateId)) {
+      const code = this.byId.get(stateId)?.code;
+      const load = (code == null ? Promise.resolve(null) : this.loadSubdistricts(code)).then((fc) => {
+        const byDistrict = new Map();
+        for (const f of fc?.features || []) {
+          const shape = prepare(f);
+          if (!shape) continue;
+          const d = f.properties.parent;
+          if (!byDistrict.has(d)) byDistrict.set(d, []);
+          byDistrict.get(d).push(shape);
+        }
+        return byDistrict;
+      });
+      this.subShapes.set(stateId, load);
     }
-    this.subShapes.set(stateId, byDistrict);
-    return byDistrict;
+    return this.subShapes.get(stateId);
   }
 }

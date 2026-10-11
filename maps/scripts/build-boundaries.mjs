@@ -1,8 +1,8 @@
 // Builds the boundary files the map uses from Bharatlas's LGD layers (CC0).
 //
-//   npm run build:boundaries            downloads ~400 MB into .cache/ once, writes data/india/
+//   npm run build:boundaries            downloads ~400 MB into .cache/ once, writes docs/maps/data/india/
 //
-// Output (data/india/):
+// Output (docs/maps/data/india/, served with the page):
 //   states.geojson, districts.geojson        simplified, with id/name/parent properties
 //   subdistricts/<state_code>.geojson        one file per state, loaded on demand
 //   regions.json                             index of every region: id, name, level, parent, label point, bbox
@@ -19,7 +19,7 @@ import mapshaper from 'mapshaper';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, '..');
 const CACHE = path.join(ROOT, '.cache');
-const OUT = path.join(ROOT, 'data', 'india');
+const OUT = path.join(ROOT, '..', 'docs', 'maps', 'data', 'india');
 const TMP = path.join(CACHE, 'build');
 
 const SOURCE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin';

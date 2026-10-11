@@ -137,7 +137,7 @@
   </figure>
   <figure>
     <img src="maps-example.png" width="1200" height="636" loading="lazy" alt="Map of India with exam paper leaks plotted as dots and a ranked summary by state">
-    <figcaption><b>Maps.</b> Ask <code>/map plot IITs, NITs and other premium institutes in India</code>. Claude researches, builds the layer and plots it across states and districts.</figcaption>
+    <figcaption><b><a href="maps/">Maps</a>.</b> Ask <code>/map plot IITs, NITs and other premium institutes in India</code>. Claude researches, builds the layer and plots it across states and districts.</figcaption>
   </figure>
   <p class="dim" style="margin-top:22px">Also in the repo: a chat page Claude runs as its assistant, and a <a href="dino/">dino game</a> it learns to play from the physics.</p>
 </section>
@@ -146,11 +146,11 @@
   <h2>Try it</h2>
   <p>Needs Node 22+ and Chrome.</p>
 <pre><code>git clone https://github.com/smarchone/webmcp-apps
-cd webmcp-apps/maps &amp;&amp; npm start    <span class="dim"># serve the page</span>
-claude                              <span class="dim"># second terminal, same folder; approve the webmcp server</span>
+cd webmcp-apps/maps
+claude                              <span class="dim"># approve the webmcp server</span>
 &gt; /map plot IITs, NITs and other premium institutes in India</code></pre>
-  <p>Chrome opens and Claude starts working.</p>
-  <p>The quickest one needs no server at all. The <a href="dino/">dino game</a> is hosted right here, and <code>/play-dino</code> opens it for your local Claude Code through the bridge:</p>
+  <p>No server to start. The <a href="maps/">map</a> is hosted right here: Chrome opens it, and Claude starts working through the bridge.</p>
+  <p>The <a href="dino/">dino game</a> is hosted here too, and <code>/play-dino</code> opens it the same way:</p>
 <pre><code>cd webmcp-apps/dino
 claude                              <span class="dim"># approve the webmcp server</span>
 &gt; /play-dino</code></pre>
