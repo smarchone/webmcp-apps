@@ -1,8 +1,16 @@
-// India's admin hierarchy: country -> state -> district -> sub-district.
+// The world's countries and their states / provinces, with India's districts and sub-districts below its states:
+// world -> country -> state -> district -> sub-district.
 // Looks regions up by id, LGD code or (fuzzy) name, and finds which regions contain a point.
-// Runs on the boundary files the page loads; sub-district shapes are fetched one state at a time.
+// Runs on the boundary files the page loads; a country's states (outside India) and an Indian state's
+// sub-districts are fetched the first time they're needed.
 
-export const LEVELS = ['country', 'state', 'district', 'subdistrict'];
+export const LEVELS = ['world', 'country', 'state', 'district', 'subdistrict'];
+
+// The world index (Natural Earth) and India's (LGD) as one: India's own entry hangs off the world
+export function combineRegions(world, india) {
+  const regions = [...world.regions.filter((r) => r.id !== 'in'), ...india.regions.map((r) => (r.id === 'in' ? { ...r, parent: 'world' } : r))];
+  return { source: [india.source, world.source], regions };
+}
 
 // Old or common names -> the names LGD uses (applied word by word to queries)
 const ALIASES = {
@@ -15,6 +23,7 @@ const ALIASES = {
   gulbarga: 'kalaburagi', bellary: 'ballari', tumkur: 'tumakuru', ooty: 'nilgiris', nct: 'delhi',
   metropolitan: 'metro', 'new delhi': 'new delhi', 'j and k': 'jammu and kashmir', jk: 'jammu and kashmir', up: 'uttar pradesh',
   mp: 'madhya pradesh', ap: 'andhra pradesh', tn: 'tamil nadu', wb: 'west bengal',
+  uk: 'united kingdom', britain: 'united kingdom', uae: 'united arab emirates', burma: 'myanmar', ceylon: 'sri lanka',
 };
 const SUFFIXES = /\b(district|dist|distt|taluk|taluka|tehsil|tahsil|mandal|subdivision|sub division|city|urban district)$/;
 
@@ -145,29 +154,38 @@ function contains(shape, x, y) {
   return false;
 }
 
+// Ties between equally good matches go to India's regions: "Punjab" is the Indian state unless a country column
+// says otherwise. Big enough to break a tie (see resolve), too small to beat a better match.
+const INDIA_FIRST = 0.006;
+const inIndia = (id) => id === 'in' || id.startsWith('in:');
+
 // ---------- Index ----------
 
 export class RegionIndex {
-  // regions: regions.json's contents; states, districts: the GeoJSON files;
-  // subdistricts(code): resolves to a state's sub-district FeatureCollection (or null)
-  constructor({ regions, states, districts, subdistricts }) {
+  // regions: combineRegions(world, india); countries, states (India's), districts: the GeoJSON files;
+  // worldStates(countryId): resolves to a country's state FeatureCollection (or null);
+  // subdistricts(code): resolves to an Indian state's sub-district FeatureCollection (or null)
+  constructor({ regions, countries, states, districts, worldStates, subdistricts }) {
+    this.loadWorldStates = worldStates;
     this.loadSubdistricts = subdistricts;
     this.byId = new Map();
     this.kids = new Map();
-    this.byCode = new Map(); // `${level}:${code}` -> region
-    this.shapes = { state: [], district: new Map() }; // district shapes grouped by state
+    this.byCode = new Map(); // `${level}:${code}` -> region (India's LGD codes)
+    this.shapes = { country: [], district: new Map() }; // district shapes grouped by state
+    this.stateShapes = new Map(); // country id -> Promise<state shapes>
     this.subShapes = new Map(); // state id -> Promise<Map(district id -> shapes)>
     this.source = regions.source;
     for (const r of regions.regions) {
-      r.key = key(r.name);
+      r.keys = [...new Set([r.name, ...(r.alt || [])].map(key).filter(Boolean))];
       this.byId.set(r.id, r);
-      if (r.code) this.byCode.set(`${r.level}:${r.code}`, r);
+      if (r.code && inIndia(r.id)) this.byCode.set(`${r.level}:${r.code}`, r);
       if (r.parent) {
         if (!this.kids.has(r.parent)) this.kids.set(r.parent, []);
         this.kids.get(r.parent).push(r);
       }
     }
-    this.shapes.state = states.features.map(prepare).filter(Boolean);
+    this.shapes.country = countries.features.map(prepare).filter(Boolean);
+    this.stateShapes.set('in', Promise.resolve(states.features.map(prepare).filter(Boolean)));
     for (const f of districts.features) {
       const shape = prepare(f);
       if (!shape) continue;
@@ -186,7 +204,7 @@ export class RegionIndex {
     return { id: r.id, name: r.name, level: r.level, code: r.code ?? null, parent: r.parent, label: r.label, bbox: r.bbox };
   }
 
-  // { country, state, district, subdistrict } ids above (and including) a region
+  // { world, country, state, district, subdistrict } ids above (and including) a region
   chain(id) {
     const out = {};
     for (let r = this.byId.get(id); r; r = this.byId.get(r.parent)) out[r.level] = r.id;
@@ -195,16 +213,16 @@ export class RegionIndex {
 
   path(id) {
     const names = [];
-    for (let r = this.byId.get(this.byId.get(id)?.parent); r && r.level !== 'country'; r = this.byId.get(r.parent)) names.push(r.name);
+    for (let r = this.byId.get(this.byId.get(id)?.parent); r && r.level !== 'world'; r = this.byId.get(r.parent)) names.push(r.name);
     return names.join(', ');
   }
 
   children(parentId, level) {
     let list = this.kids.get(parentId) || [];
-    // Asking a state for its sub-districts skips the district level
-    if (level && list.length && list[0].level !== level) {
-      list = list.flatMap((c) => this.kids.get(c.id) || []).filter((r) => r.level === level);
-    }
+    // Asking a state for its sub-districts skips the district level (and the world for states, the countries)
+    const depth = LEVELS.indexOf(level);
+    while (level && list.length && LEVELS.indexOf(list[0].level) < depth) list = list.flatMap((c) => this.kids.get(c.id) || []);
+    if (level) list = list.filter((r) => r.level === level);
     return list.map((r) => ({ id: r.id, name: r.name, level: r.level })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -216,10 +234,11 @@ export class RegionIndex {
     for (const r of this.byId.values()) {
       if (level && r.level !== level) continue;
       if (withinId && withinId !== r.id && !Object.values(this.chain(r.id)).includes(withinId)) continue;
-      const s = score(q, r.key);
+      let s = 0;
+      for (const k of r.keys) s = Math.max(s, score(q, k));
       if (s <= 0) continue;
       // Ties go to the bigger region: "Hyderabad" the district before the sub-district
-      results.push({ r, s: s + (3 - LEVELS.indexOf(r.level)) * 0.001 });
+      results.push({ r, s: s + (LEVELS.length - LEVELS.indexOf(r.level)) * 0.001 + (inIndia(r.id) ? INDIA_FIRST : 0) });
     }
     results.sort((a, b) => b.s - a.s);
     return results.slice(0, limit).map(({ r, s }) => ({ ...this.public(r), in: this.path(r.id), score: +s.toFixed(2) }));
@@ -230,9 +249,9 @@ export class RegionIndex {
     return this.find(ref, { limit: 1 })[0]?.id ?? null;
   }
 
-  // One region for a reference in a data file: id, LGD code (with level) or name.
-  // Returns { region } or { error }.
-  resolve(ref, { level, state } = {}) {
+  // One region for a reference in a data file: id, LGD code (with level) or name, optionally inside a named
+  // country and / or state. Returns { region } or { error }.
+  resolve(ref, { level, state, country } = {}) {
     const raw = String(ref ?? '').trim();
     if (!raw) return { error: 'empty region' };
     if (this.byId.has(raw)) return { region: this.get(raw) };
@@ -241,9 +260,13 @@ export class RegionIndex {
       return r ? { region: this.public(r) } : { error: `no ${level} with LGD code ${raw}` };
     }
     let within;
+    if (country) {
+      within = this.find(String(country), { level: 'country', limit: 1 })[0];
+      if (!within || within.score < 0.85) return { error: `unknown country "${country}"` };
+    }
     if (state) {
-      within = this.find(String(state), { level: 'state', limit: 1 })[0];
-      if (!within || within.score < 0.85) return { error: `unknown state "${state}"` };
+      within = this.find(String(state), { level: 'state', within: within?.id, limit: 1 })[0];
+      if (!within || within.score < 0.85) return { error: `unknown state "${state}"${country ? ` in ${country}` : ''}` };
     }
     const matches = this.find(raw, { level, within: within?.id, limit: 3 });
     const best = matches[0];
@@ -255,20 +278,32 @@ export class RegionIndex {
     return { region: best };
   }
 
-  // Which state / district / sub-district contains a point
+  // Which country / state / district / sub-district contains a point (districts and below in India only)
   async locate(lng, lat) {
     const out = {};
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return out;
-    const state = nearest(this.shapes.state, lng, lat);
+    const country = nearest(this.shapes.country, lng, lat);
+    if (!country) return out;
+    out.world = 'world';
+    out.country = country.id;
+    const state = nearest(await this.statesOf(country.id), lng, lat);
     if (!state) return out;
-    out.country = 'in';
     out.state = state.id;
+    if (country.id !== 'in') return out;
     const district = nearest(this.shapes.district.get(state.id) || [], lng, lat);
     if (!district) return out;
     out.district = district.id;
     const sub = nearest((await this.subdistrictShapes(state.id)).get(district.id) || [], lng, lat);
     if (sub) out.subdistrict = sub.id;
     return out;
+  }
+
+  statesOf(countryId) {
+    if (!this.stateShapes.has(countryId)) {
+      const load = Promise.resolve(this.loadWorldStates?.(countryId)).then((fc) => (fc?.features || []).map(prepare).filter(Boolean));
+      this.stateShapes.set(countryId, load);
+    }
+    return this.stateShapes.get(countryId);
   }
 
   subdistrictShapes(stateId) {

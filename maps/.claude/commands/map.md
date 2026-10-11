@@ -1,5 +1,5 @@
 ---
-description: Analyse data and plot it on the India map (states, districts, sub-districts)
+description: Analyse data and plot it on the map (countries and states worldwide, India's districts and sub-districts)
 argument-hint: "[what to analyse and map]"
 ---
 

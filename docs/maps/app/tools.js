@@ -7,11 +7,11 @@ const FILE_GUIDE = {
     'Write data files under workspace/ in the folder Claude Code runs in, then pass rows: {"$file": "workspace/<path>"} (the bridge inlines the file) and file: "<path>" (names the file in the layer, the table and error messages; its extension picks the format).',
   formats: '.csv, .tsv, .json (array of objects), .geojson (Point features) or .jsonl',
   points: {
-    location: 'Either "lat" + "lng" columns (decimal degrees), or a "region" column (a region id like "in:district:525", or a name like "Bengaluru Urban"; add a "state" column when names repeat across states). Region-only rows are drawn at the region centre.',
+    location: 'Either "lat" + "lng" columns (decimal degrees), or a "region" column (a region id like "in:district:525" or "us:state:US-CA", or a name like "Bengaluru Urban" or "California"; add a "state" column when names repeat across states, and a "country" column for places outside India, since equal names go to India). Region-only rows are drawn at the region centre.',
     optional: '"id" (dedupes rows across appended files, e.g. tweet id), "weight" (default 1, or name another column with weight_field), "label", "date", "category" (colours dots), "url". Other columns show in the point popup.',
   },
   regions: {
-    columns: 'A region column ("region", or the level name such as "district") with an id, LGD code or name, an optional "state" column for disambiguation, and a numeric column (named "value", or pass value_field).',
+    columns: 'A region column ("region", or the level name such as "country" or "district") with an id, name, ISO code (countries: "US", "USA"; states: "US-CA") or LGD code (India), optional "country" and "state" columns for disambiguation (equal names go to India unless a country column says otherwise), and a numeric column (named "value", or pass value_field).',
   },
   adding_later:
     'To add data in a later session, write a new file and call plot_points / plot_regions with the same layer_id: files are appended to the layer. The map does not watch files: after editing a file a layer uses, plot it again with the same layer_id and file to update it.',
@@ -72,7 +72,8 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
           subtitle: s.subtitle,
           focus: getFocus(),
           layers: s.layers.map(layerSummary),
-          hierarchy: 'country "in" > state "in:state:<LGD code>" > district "in:district:<code>" > subdistrict "in:subdistrict:<code>"',
+          hierarchy:
+            'world "world" > country (lower-case ISO alpha-2, e.g. "in", "us") > state / province ("us:state:US-CA"; in India "in:state:<LGD code>") > district "in:district:<code>" > subdistrict "in:subdistrict:<code>". Districts and sub-districts exist for India only.',
           boundaries: s.boundaries,
           files: FILE_GUIDE,
           workflow: WORKFLOW,
@@ -87,8 +88,8 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
         type: 'object',
         properties: {
           query: { type: 'string' },
-          level: { type: 'string', enum: ['state', 'district', 'subdistrict'] },
-          within: { type: 'string', description: 'Region id or name to search inside, e.g. "in:state:29" or "Karnataka"' },
+          level: { type: 'string', enum: ['country', 'state', 'district', 'subdistrict'] },
+          within: { type: 'string', description: 'Region id or name to search inside, e.g. "in:state:29", "Karnataka" or "Brazil"' },
           limit: { type: 'number', description: 'Default 5' },
         },
         required: ['query'],
@@ -98,17 +99,17 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     },
     {
       name: 'list_regions',
-      description: 'List the regions inside a region (default: the states of India). Pass level to skip down, e.g. all sub-districts of a state.',
+      description: 'List the regions inside a region (default: the countries of the world). Pass level to skip down, e.g. all sub-districts of an Indian state.',
       inputSchema: {
         type: 'object',
         properties: {
-          parent_id: { type: 'string', description: 'Default "in" (India)' },
-          level: { type: 'string', enum: ['state', 'district', 'subdistrict'] },
+          parent_id: { type: 'string', description: 'Default "world"; "in" is India' },
+          level: { type: 'string', enum: ['country', 'state', 'district', 'subdistrict'] },
         },
       },
       annotations: { readOnlyHint: true },
       execute: async (a) => {
-        const parent = a.parent_id || 'in';
+        const parent = a.parent_id || 'world';
         if (!regions.get(parent)) throw new Error(`Unknown region: ${parent}`);
         return { parent, regions: regions.children(parent, a.level) };
       },
@@ -116,7 +117,7 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     {
       name: 'plot_points',
       description:
-        'Plot points from a data file as a heatmap or dots. Pass rows: {"$file": "workspace/<path>"} plus file. Creates a layer, or appends the file to an existing layer when layer_id matches one (use this to add data incrementally). Returns rows plotted, skipped rows with reasons, and the top states. See get_map for the file format.',
+        'Plot points from a data file as a heatmap or dots. Pass rows: {"$file": "workspace/<path>"} plus file. Creates a layer, or appends the file to an existing layer when layer_id matches one (use this to add data incrementally). Returns rows plotted, skipped rows with reasons, and the top countries. See get_map for the file format.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -152,13 +153,13 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     {
       name: 'plot_regions',
       description:
-        'Colour regions by a value from a data file (choropleth), at state, district or sub-district level. Pass rows: {"$file": "workspace/<path>"} plus file. Appends to an existing layer when layer_id matches. Returns matched regions, unmatched names with reasons, and the highest and lowest values.',
+        'Colour regions by a value from a data file (choropleth), at country, state / province, or (India only) district or sub-district level. Pass rows: {"$file": "workspace/<path>"} plus file. Appends to an existing layer when layer_id matches. Returns matched regions, unmatched names with reasons, and the highest and lowest values.',
       inputSchema: {
         type: 'object',
         properties: {
           rows: ROWS,
           file: FILE,
-          level: { type: 'string', enum: ['state', 'district', 'subdistrict'] },
+          level: { type: 'string', enum: ['country', 'state', 'district', 'subdistrict'] },
           title: { type: 'string', description: 'Required for a new layer; ignored when appending' },
           value_field: { type: 'string', description: 'Numeric column to colour by. Default: a "value" column, or the only numeric column' },
           layer_id: { type: 'string' },
@@ -234,13 +235,13 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     {
       name: 'summarize_layer',
       description:
-        'Totals of a layer by region, as plotted: point counts (or values) grouped by state, district or sub-district, optionally inside one region. Use it to check the plot and to find patterns worth pointing out.',
+        'Totals of a layer by region, as plotted: point counts (or values) grouped by country, state, district or sub-district, optionally inside one region. Use it to check the plot and to find patterns worth pointing out.',
       inputSchema: {
         type: 'object',
         properties: {
           layer_id: { type: 'string' },
-          within: { type: 'string', description: 'Region id or name, default India' },
-          by: { type: 'string', enum: ['state', 'district', 'subdistrict'], description: 'Default: one level below "within"' },
+          within: { type: 'string', description: 'Region id or name, default the whole world' },
+          by: { type: 'string', enum: ['country', 'state', 'district', 'subdistrict'], description: 'Default: one level below "within"' },
           limit: { type: 'number', description: 'Default 15' },
         },
         required: ['layer_id'],
@@ -250,12 +251,12 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     },
     {
       name: 'show_region',
-      description: 'Zoom every open map tab to a region (drill down or up the hierarchy). Accepts a region id or a name; "India" goes back to the whole country.',
+      description: 'Zoom every open map tab to a region (drill down or up the hierarchy). Accepts a region id or a name; "world" shows the whole world.',
       inputSchema: { type: 'object', properties: { region: { type: 'string' } }, required: ['region'] },
       execute: async (a) => {
-        let id = a.region;
-        if (/^india$/i.test(id.trim())) id = 'in';
-        if (!/^in(:|$)/.test(id)) {
+        let id = a.region.trim();
+        if (/^(the )?world$/i.test(id)) id = 'world';
+        if (!regions.get(id)) {
           const [match] = regions.find(a.region, { limit: 1 });
           if (!match) throw new Error(`No region matches "${a.region}"`);
           id = match.id;

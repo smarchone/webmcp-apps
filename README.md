@@ -33,7 +33,7 @@ its own tools, so there's nothing else to install.
 | App                  | What Claude does                                                         | Run it                                                     |
 | -------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
 | [`dino/`](dino/)     | Plays a dino runner from the game's physics and learns from each death   | [Live](https://smarchone.github.io/webmcp-apps/dino/)      |
-| [`maps/`](maps/)     | Analyses data and plots it on India's states, districts and sub-districts | [Live](https://smarchone.github.io/webmcp-apps/maps/)      |
+| [`maps/`](maps/)     | Analyses data and plots it on the world's countries and states, and India's districts and sub-districts | [Live](https://smarchone.github.io/webmcp-apps/maps/)      |
 | [`editor/`](editor/) | Edits Markdown docs with you and answers your comment threads            | From a clone                                               |
 | [`chat/`](chat/)     | Acts as a chat page's assistant and manages its todos, notes and theme   | From a clone                                               |
 

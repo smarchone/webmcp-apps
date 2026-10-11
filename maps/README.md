@@ -1,8 +1,8 @@
 # Maps
 
-A map of India that a Claude Code session draws on. Claude does the analysis with its own tools (files,
-scripts, the web, other MCP servers), writes the results to files, and plots them as heatmaps, dots or
-choropleths on states, districts and sub-districts. Layers persist, so later sessions keep adding to the
+A world map that a Claude Code session draws on, with extra detail for India. Claude does the analysis with its
+own tools (files, scripts, the web, other MCP servers), writes the results to files, and plots them as heatmaps,
+dots or choropleths on countries and their states / provinces, and in India also on districts and sub-districts. Layers persist, so later sessions keep adding to the
 same map.
 
 The map is plain static files: no app server, no build step. The page lives in [`docs/maps/`](../docs/maps/),
@@ -38,8 +38,8 @@ server works too: every URL the page loads is relative.
 claude ── analysis ──► workspace/potholes.csv
    └──── plot_points({ rows: {"$file": "workspace/potholes.csv"} }) ──► bridge inlines the file
                                                                         ──WebMCP──► page parses the rows and
-                                                                        places each point in its state /
-                                                                        district / sub-district
+                                                                        places each point in its country /
+                                                                        state (/ district / sub-district)
 ```
 
 - **Data goes through files, not the conversation.** Claude writes CSV, GeoJSON or JSON Lines into
@@ -47,9 +47,10 @@ claude ── analysis ──► workspace/potholes.csv
   file's text on the way to the page, so a 10,000-row file costs Claude the same tokens as a 10-row one.
 - **Points:** `lat`,`lng`, or a `region` name/id (drawn at the region's centre). An `id` column dedupes rows
   across appended batches. `weight`, `label`, `date`, `category`, `url` are optional.
-- **Region values:** a region column (`district`, `state` or `region`) plus a numeric column.
-  Names are matched fuzzily, including old names (Bangalore, Gurgaon, Orissa). Ambiguous names (two
-  Aurangabads) are reported back so Claude can add a `state` column.
+- **Region values:** a region column (`country`, `state`, `district` or `region`) plus a numeric column.
+  Names are matched fuzzily, including old names (Bangalore, Gurgaon, Orissa) and ISO codes (`US`, `USA`,
+  `US-CA`). Ambiguous names (two Aurangabads) are reported back so Claude can add a `state` column. When a name
+  exists in India and elsewhere (Punjab), India's wins unless a `country` column says otherwise.
 - **Adding later:** plotting a new file with an existing `layer_id` appends it. The map doesn't watch files:
   after editing one, Claude plots it again with the same `layer_id` and file name, which replaces that
   file's rows.
@@ -62,9 +63,10 @@ claude ── analysis ──► workspace/potholes.csv
 
 ## Using the map
 
-- Click a region to drill down: India → state → district → sub-district. The breadcrumb goes back up.
+- Click a region to drill down: World → country → state / province, and in India on to district → sub-district.
+  The breadcrumb goes back up.
 - The panel shows the focused region's numbers for each layer, and its top sub-regions.
-- Search finds any state, district or taluk.
+- Search finds any country, state, district or taluk.
 - **▦ Table** shows each layer's rows for the region you're in: sort by any column, filter, download as CSV.
   Click a row to see it on the map. Drag the drawer's top edge to resize it.
 - Drag the edge between the panel and the map to resize the panel (double-click resets it).
@@ -80,15 +82,23 @@ claude ── analysis ──► workspace/potholes.csv
 
 ## Boundaries
 
-From India's [Local Government Directory](https://lgdirectory.gov.in/) (2024), via
-[Bharatlas](https://bharatlas.com) (CC0): 36 states and UTs, 784 districts, 6,471 sub-districts, keyed by
-LGD codes (`in:district:525` is Bengaluru Urban). Every map and export says where the boundaries come from
-and that they are indicative.
+- **World:** [Natural Earth](https://www.naturalearthdata.com) v5.1.2 (public domain), from its India point of
+  view: 245 countries and 4,558 states / provinces. Countries are keyed by lower-case ISO 3166 alpha-2 codes
+  (`us`), states by ISO 3166-2 (`us:state:US-CA`).
+- **India:** the [Local Government Directory](https://lgdirectory.gov.in/) (2024), via
+  [Bharatlas](https://bharatlas.com) (CC0): 36 states and UTs, 784 districts, 6,471 sub-districts, keyed by
+  LGD codes (`in:district:525` is Bengaluru Urban). India's outline comes from these files too, and the world
+  boundaries are cut where they overlap it, so India's states sit exactly inside it.
 
-They are simplified and stored in `docs/maps/data/india/` (32 MB). A service worker (`docs/maps/sw.js`) keeps each
-file in the browser after its first download, so repeat visits don't fetch them again. To rebuild them (downloads
-~400 MB once):
+Every map and export says where the boundaries come from and that they are indicative.
+
+They are simplified and stored in `docs/maps/data/world/` (14 MB) and `docs/maps/data/india/` (32 MB). The page
+loads the countries and India's states and districts at startup, and a country's states or an Indian state's
+sub-districts when you first open them. A service worker (`docs/maps/sw.js`) keeps each file in the browser after
+its first download, so repeat visits don't fetch them again. To rebuild them:
 
 ```bash
-npm install && npm run build:boundaries
+npm install
+npm run build:boundaries   # India, downloads ~400 MB once
+npm run build:world        # the world, downloads ~55 MB once; run it after build:boundaries
 ```
