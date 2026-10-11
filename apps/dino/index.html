@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebMCP Dino</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>WebMCP Dino</h1>
+      <p class="muted" id="webmcp">checking for WebMCP…</p>
+    </header>
+
+    <section class="stage">
+      <div class="hud">
+        <span id="mode">idle</span>
+        <span class="right">HI <b id="best">00000</b> &nbsp; <b id="score">00000</b></span>
+      </div>
+      <canvas id="game" width="800" height="240"></canvas>
+      <div class="controls">
+        <button id="play">Play yourself</button>
+        <span class="muted">Space / ↑ jump · ↓ duck</span>
+      </div>
+    </section>
+
+    <details class="card install" id="install" open>
+      <summary>Let Claude Code play this game</summary>
+      <ol class="steps">
+        <li>
+          <span>Add the WebMCP bridge to Claude Code</span>
+          <div class="copy"><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy bridge command">Copy</button></div>
+        </li>
+        <li>
+          <span>Ask Claude to play</span>
+          <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools and play one game"</code><button data-copy="cmd-play" aria-label="Copy play command">Copy</button></div>
+        </li>
+      </ol>
+      <p class="muted small">Run both in the same folder. Requires Node 22+ and Chrome.</p>
+      <details class="advanced">
+        <summary>Advanced</summary>
+        <p class="muted small">For better play, replace step 2 with either of these.</p>
+        <ol class="steps alt">
+          <li>
+            <span>A detailed prompt</span>
+            <div class="copy"><code id="cmd-adv-prompt">claude 'Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools. Call get_game_rules first and follow its physics and strategy. Play 3 games. After each one, call get_history, say what ended the game and adjust your trigger gaps before the next.'</code><button data-copy="cmd-adv-prompt" aria-label="Copy detailed prompt">Copy</button></div>
+          </li>
+          <li>
+            <span>The <code>/play-dino</code> command, then run <code>/play-dino 3</code> in Claude Code</span>
+            <div class="copy"><code id="cmd-adv-command">mkdir -p .claude/commands && curl -fsSL https://smarchone.github.io/webmcp-apps/dino/play-dino.md -o .claude/commands/play-dino.md</code><button data-copy="cmd-adv-command" aria-label="Copy command install">Copy</button></div>
+          </li>
+        </ol>
+      </details>
+    </details>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Stats</h2>
+        <dl>
+          <dt>Speed</dt><dd id="speed">-</dd>
+          <dt>Games played</dt><dd id="games">0</dd>
+          <dt>Agent best</dt><dd id="agent-best">-</dd>
+        </dl>
+        <p class="muted small">In agent mode the game freezes when an obstacle comes into range. The agent plans
+          <i>when</i> to jump or duck, and the game carries out the plan in real time.</p>
+      </div>
+      <div class="card">
+        <h2>Agent decisions</h2>
+        <ol class="log" id="log"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>

@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "webmcp": {
-      "command": "node",
-      "args": ["../bridge/webmcp-bridge.mjs"]
-    }
-  }
-}

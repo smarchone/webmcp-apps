@@ -1,7 +1,8 @@
 # WebMCP bridge
 
 A generic, dependency-free stdio MCP server. Add it to any Claude Code session and that session can use the
-WebMCP tools (`document.modelContext`) of any web page. Every app in this repo points its `.mcp.json` here.
+WebMCP tools (`document.modelContext`) of any web page. The hosted apps use it from npm, and the
+editor's `.mcp.json` points here.
 
 ```
  terminal: claude ──stdio MCP──► webmcp-bridge ──Chrome DevTools Protocol──► Chrome tab
