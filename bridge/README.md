@@ -12,11 +12,20 @@ WebMCP tools (`document.modelContext`) of any web page. Every app in this repo p
 
 ## Using it with any session or page
 
-Add it to Claude Code from any directory:
+Add it to Claude Code from npm, for every project:
+
+```bash
+claude mcp add -s user webmcp -- npx -y @smarchone/webmcp-bridge
+```
+
+Or from a clone:
 
 ```bash
 claude mcp add webmcp -- node /absolute/path/to/webmcp-apps/bridge/webmcp-bridge.mjs
 ```
+
+The package is published from this folder: `npm publish` here ships `webmcp-bridge.mjs`, `interceptor.js`
+and this README.
 
 Bridge tools:
 
