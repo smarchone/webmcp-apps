@@ -107,3 +107,4 @@ dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
 }
+.install .small a { color: var(--accent); }
