@@ -39,6 +39,8 @@ claude ──MCP──► webmcp-bridge ──CDP──► Chrome tab ──► 
 | [`editor/`](editor/) | Edits Markdown docs with you and answers your comment threads, with versions | 3458 |
 | [`maps/`](maps/)     | Analyses data and plots it on India's states, districts and sub-districts    | 3459 |
 
+All four share one MCP server, [`bridge/`](bridge/), which their `.mcp.json` files point at.
+
 ## Try it (2 minutes)
 
 Requires Node 22+ and Chrome.
@@ -60,7 +62,7 @@ folder, run `claude` there, and use its command:
 
 ## Build your own
 
-1. Copy an app folder. Keep `.mcp.json`, which points at the shared bridge in `chat/bridge/`.
+1. Copy an app folder. Keep `.mcp.json`, which points at the shared bridge in `bridge/`.
 2. Register tools on your page:
 
    ```js
@@ -74,5 +76,5 @@ folder, run `claude` there, and use its command:
 
 3. Add a slash command in `.claude/commands/` that tells Claude how to use them.
 
-More detail: [`chat/README.md`](chat/README.md) covers the bridge, and
+More detail: [`bridge/README.md`](bridge/README.md) covers the bridge, and
 [`docs/webmcp-learnings.md`](docs/webmcp-learnings.md) has the API gotchas we hit.

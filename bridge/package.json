@@ -1,0 +1,16 @@
+{
+  "name": "webmcp-bridge",
+  "version": "0.2.0",
+  "private": true,
+  "description": "A stdio MCP server that lets any Claude Code session use WebMCP tools on any web page",
+  "type": "module",
+  "bin": {
+    "webmcp-bridge": "webmcp-bridge.mjs"
+  },
+  "scripts": {
+    "start": "node webmcp-bridge.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

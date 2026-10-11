@@ -15,7 +15,7 @@ In another terminal, start `claude` in `dino/`, approve the `webmcp` server, the
 /play-dino       # 1 game; /play-dino 3 for three
 ```
 
-The bridge is shared with `chat/` (`../chat/bridge/webmcp-bridge.mjs`), so it uses the same Chrome window.
+The bridge is shared by every app (`../bridge/webmcp-bridge.mjs`), so it uses the same Chrome window.
 
 ## How an agent plays a real-time game
 
