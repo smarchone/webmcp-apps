@@ -18,6 +18,15 @@ const FILE_GUIDE = {
   saved: 'Layers are saved in this browser (title and settings in localStorage, rows in IndexedDB). If they are gone, plot the files again.',
 };
 
+const WORKFLOW = [
+  'If a layer above already covers the topic, add to it (same layer_id) instead of making a new one.',
+  'Do the analysis with your own tools (files, scripts, web, other MCP servers). Keep raw data out of the conversation: write results under workspace/, e.g. workspace/<topic>/<yyyy-mm-dd>-<what>.csv. Use rates (per lakh people, per km of road) when comparing regions of different sizes.',
+  'Plot with plot_points or plot_regions. Always set source (where the data came from and its date range) and a one-line description of how you derived it.',
+  'Read the result: fix skipped rows (unknown or ambiguous names) and plot again with replace: true. Use summarize_layer to check the numbers and find the pattern worth telling.',
+  'Set a headline with set_title: the finding, not the topic. Zoom to where the story is with show_region. If the user asked for an image, call export_image (square for Instagram, wide for X).',
+  'Finish with 2-4 lines: what you plotted, the main pattern, and the layer id for adding more later. Do not present guesses as data, and say where coverage is thin.',
+];
+
 const ROWS = {
   description:
     'The data: {"$file": "workspace/<path>"} so the bridge passes the file\'s text (CSV, TSV, JSON, GeoJSON or JSON Lines), or an array of row objects for a few rows',
@@ -53,7 +62,7 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
     {
       name: 'get_map',
       description:
-        "Start here. Returns the map's title, its existing data layers (from earlier sessions too), the region the map is focused on, and how to pass data files to the plot tools.",
+        "Start here. Returns the map's title, its existing data layers (from earlier sessions too), the region the map is focused on, how to pass data files to the plot tools, and the workflow to follow.",
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       execute: async () => {
@@ -66,6 +75,7 @@ export function buildTools({ store, regions, getFocus, setFocus, exportImage }) 
           hierarchy: 'country "in" > state "in:state:<LGD code>" > district "in:district:<code>" > subdistrict "in:subdistrict:<code>"',
           boundaries: s.boundaries,
           files: FILE_GUIDE,
+          workflow: WORKFLOW,
         };
       },
     },

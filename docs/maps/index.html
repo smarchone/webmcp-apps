@@ -74,6 +74,19 @@
       </section>
     </main>
   </div>
+
+  <div class="tt">
+    <section class="tt-pop" id="tt" aria-labelledby="tt-title">
+      <div class="tt-head"><b id="tt-title">Installation</b><button class="icon-btn" id="tt-x" aria-label="Close">✕</button></div>
+      <p class="tt-lead">Run these in a terminal to let Claude Code analyse data and plot it on this map.</p>
+      <span class="tt-step">1. Add the WebMCP bridge to Claude Code</span>
+      <div class="copy"><code id="cmd-add">claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge</code><button data-copy="cmd-add" aria-label="Copy">Copy</button></div>
+      <span class="tt-step">2. Ask Claude to map something</span>
+      <div class="copy"><code id="cmd-play">claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"</code><button data-copy="cmd-play" aria-label="Copy">Copy</button></div>
+      <p class="tt-foot">Run both in the same folder; Claude saves its data files there. Requires Node 22+ and Chrome.</p>
+    </section>
+    <button class="tt-btn" id="tt-btn" aria-expanded="true" aria-controls="tt">⤓ Install for Claude Code</button>
+  </div>
   <script type="module" src="app/app.js"></script>
 </body>
 </html>

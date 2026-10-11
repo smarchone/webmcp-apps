@@ -52,8 +52,14 @@ claude "Open https://smarchone.github.io/webmcp-apps/dino/ with the webmcp tools
 
 Chrome opens the [GitHub Pages copy of the game](https://smarchone.github.io/webmcp-apps/dino/) and Claude
 starts playing. The game's own `get_game_rules` tool teaches Claude the physics and strategy, so no slash
-command is needed. The same bridge works for the [live maps app](https://smarchone.github.io/webmcp-apps/maps/)
-and any other WebMCP page.
+command is needed. The [live maps app](https://smarchone.github.io/webmcp-apps/maps/) works the same way, and
+its `get_map` tool carries the workflow:
+
+```bash
+claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"
+```
+
+Both pages show these commands behind their "Install for Claude Code" button.
 
 ### From a clone
 

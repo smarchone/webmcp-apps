@@ -11,7 +11,18 @@ command, the `workspace/` your data files go in, and the boundary build script.
 
 ## Run
 
-Start `claude` in `maps/` and ask:
+Without a clone, add the bridge from npm in any folder and ask Claude to map something (the map's
+"Install for Claude Code" button shows the same commands with copy buttons):
+
+```bash
+claude mcp add webmcp -- npx -y @smarchone/webmcp-bridge
+claude "Open https://smarchone.github.io/webmcp-apps/maps/ with the webmcp tools and plot the IITs in India"
+```
+
+Claude writes its data files under `workspace/` in that folder. The map's `get_map` tool carries the workflow
+(reuse layers, set a source, headline the finding), so no slash command is needed.
+
+From a clone, start `claude` in `maps/` and ask:
 
 ```
 > /map pothole complaints in Bengaluru from this CSV, by sub-district
